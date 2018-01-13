@@ -97,8 +97,7 @@ class starcall_rest extends WP_REST_Controller {
     public function get_requests( WP_REST_Request $request ){
 
         global $wpdb;
-
-	$sql = 'SELECT *
+        $sql = 'SELECT *
         FROM wpsc_rq_requests';
 
         // Determine if we need to add WHERE clauses to our query
