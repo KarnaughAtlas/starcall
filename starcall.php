@@ -23,28 +23,39 @@ class starcall_rest extends WP_REST_Controller {
     public function register_routes() {
         $namespace = $this->my_namespace . $this->my_version;
 
-        // Register route for read method - anyone can read, hence no permissions callback
+        // Request request routes
+
         register_rest_route( $namespace, '/requests', array(
             array(
                 'methods'         => WP_REST_Server::READABLE,
-                'callback'        => array( $this, 'get_requests' ),
+                'callback'        => array( $this, 'get_requests' ) ),
 
             array(
                 'methods'         => WP_REST_Server::EDITABLE,
-                'callback'        => array( $this, 'post_requests' ),
-            )
+                'callback'        => array( $this, 'post_request' ) ),
 
-			//TODO register route for create request method
-				// Must be a valid logged-in user to submit
+            array(
+                'methods'         => WP_REST_Server::DELETABLE,
+                'callback'        => array( $this, 'delete_request' ) ),
+        ) );
 
-			//TODO register route for edit request method
-				// Must be an admin or the request submitter to edit
+        register_rest_route( $namespace, '/comments', array(
+            array(
+                'methods'         => WP_REST_Server::READABLE,
+                'callback'        => array( $this, 'get_comments' ) ),
 
-			//TODO register route for delete request
-				// Only allow admins or request submitter to delete
+            array(
+                'methods'         => WP_REST_Server::EDITABLE,
+                'callback'        => array( $this, 'post_comment' ) ),
 
-        		//TODO register route for getting comments
-        			// Anyone can get comments
+            array(
+                'methods'         => WP_REST_Server::DELETABLE,
+                'callback'        => array( $this, 'delete_comment' ) ),
+        ) );
+
+
+       		//TODO register route for getting comments
+       			// Anyone can get comments
 
 			//TODO register route for adding comment
 				// Must be logged in to add a comment
@@ -60,7 +71,6 @@ class starcall_rest extends WP_REST_Controller {
 
 			//TODO register route for editing a fulfillment
 				// Must be mod or owner
-        )  );
     }
 
   // Register our REST Server
@@ -68,6 +78,7 @@ class starcall_rest extends WP_REST_Controller {
         add_action( 'rest_api_init', array( $this, 'register_routes' ) );
     }
 
+    public function get_requests( WP_REST_Request $request ){
 
     //------------------------------------------------------------------------------------------------------------------
     // Function: get_requests
@@ -98,8 +109,6 @@ class starcall_rest extends WP_REST_Controller {
     //		  	submitted: returns requests awaiting approval
     //          approved (default):  requests visible to public
     //------------------------------------------------------------------------------------------------------------------
-
-    public function get_requests( WP_REST_Request $request ){
 
         global $wpdb;
         $sql = 'SELECT *
@@ -216,10 +225,10 @@ class starcall_rest extends WP_REST_Controller {
 		return($requests);
 	}
 
-    public function post_requests (WP_REST_Request $request) {
+    public function post_request (WP_REST_Request $request) {
 
-    //------------------------------------------------------------------------------------------------------------------
-    // Function: post_requests
+    //--------------------------------------------------------------------------------------------------------------------
+    // Function: post_request
     //
     // This is the create/update function for requests. This function consumes a JSON object in the body of the request.
     // BE CAREFUL! If post_requests is given an id parm it assumes we're modifying an existing request. You can not create
@@ -228,10 +237,80 @@ class starcall_rest extends WP_REST_Controller {
     //
     // If post_requests is not given an ID it assumes we're creating a new one. Success will return true, failure false.
     //
+    // Any logged in user may create requests. Only moderators and the owner of the request in question may modify.
+    //
   	// URL: https://starcall.sylessae.com/wp-json/starcall/v1/requests/
-  	// Method: GET
-    // Returns: success (bool)
+  	// Method: POST
+    // Returns: JSON with true/false and an error if applicable
   	// Parms: JSON object
+    //--------------------------------------------------------------------------------------------------------------------
+
+        global $wpdb;
+
+        // TODO write this function :-)
+
+        // If we have an ID we're updating an existing request
+            // User is an admin or the owner of the request
+                // Update request from JSON fields
+            // User is not allowed to update this request
+                // Return JSON with descriptive error
+        // If we don't have an ID, we're creating a new request
+            // User is logged in
+                // Validate request object
+                    // SQL insert from JSON
+                    // Return success
+                // Validation error
+                    // Return descriptive error
+            // User is not logged in
+                // Return descriptive error message
+
+        return("This isn't done yet!");
+
+    }
+
+    public function delete_request (WP_REST_Request $request) {
+
+    //--------------------------------------------------------------------------------------------------------------------
+    // Function: delete_request
+    //
+    // This function deletes reques. It takes only one parm, the ID of the request to delete. Only the owner of the request
+    // or a moderator may delete requests.
+    //
+  	// URL: https://starcall.sylessae.com/wp-json/starcall/v1/requests/
+  	// Method: DELETE
+    // Returns: JSON with true/false and an error if applicable
+  	// Parms: ID
+    //--------------------------------------------------------------------------------------------------------------------
+
+        global $wpdb;
+
+        // TODO write this function :-)
+
+        // Do we have an ID?
+            // Is this user allowed to delete this request (mod or request owner) ?
+                // Delete request
+                // Return true or descriptive error
+            // User can not delete
+                // Return descriptive error
+        // We don't have an ID
+            // Return descriptive error
+
+        return("This isn't done yet!");
+
+    }
+
+    public function get_comments (WP_REST_Request $request) {
+
+    //--------------------------------------------------------------------------------------------------------------------
+    // Function: get_comments
+    //
+    // TODO add description and other stuff here
+    //
+  	// URL: https://starcall.sylessae.com/wp-json/starcall/v1/comments/
+  	// Method: GET
+    // Returns: JSON
+  	// Parms: JSON
+    //--------------------------------------------------------------------------------------------------------------------
 
         global $wpdb;
 
@@ -240,6 +319,49 @@ class starcall_rest extends WP_REST_Controller {
         return("This isn't done yet!");
 
     }
+
+    public function post_comment (WP_REST_Request $request) {
+
+    //--------------------------------------------------------------------------------------------------------------------
+    // Function: post_comment
+    //
+    // TODO add description and other stuff here
+    //
+  	// URL: https://starcall.sylessae.com/wp-json/starcall/v1/comments/
+  	// Method: POST
+    // Returns: JSON
+  	// Parms: JSON
+    //--------------------------------------------------------------------------------------------------------------------
+
+        global $wpdb;
+
+        // TODO write this function :-)
+
+        return("This isn't done yet!");
+
+    }
+
+    public function delete_comment (WP_REST_Request $request) {
+
+    //--------------------------------------------------------------------------------------------------------------------
+    // Function: delete_comment
+    //
+    // TODO add description and other stuff here
+    //
+  	// URL: https://starcall.sylessae.com/wp-json/starcall/v1/comments/
+  	// Method: DELETE
+    // Returns: JSON
+  	// Parms: JSON
+    //--------------------------------------------------------------------------------------------------------------------
+
+        global $wpdb;
+
+        // TODO write this function :-)
+
+        return("This isn't done yet!");
+
+    }
+
 }
 
 $starcall_rest = new starcall_rest();
