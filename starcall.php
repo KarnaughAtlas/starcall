@@ -87,10 +87,10 @@ class starcall_rest extends WP_REST_Controller {
     // a status = 'approved' and nsfw = 0. Otherwise, you can give it parms in the URL and it'll filter requests.
     // If given a request_id it will ignore all other parms and return the request with that ID.
     //
-  	// URL: https://starcall.sylessae.com/wp-json/starcall/v1/requests/
-  	// Method: GET
+    // URL: https://starcall.sylessae.com/wp-json/starcall/v1/requests/
+    // Method: GET
     // Returns: Requests JSON object
-  	// Parms: id (int): request ID. If given this parameter, the function will return a single matching request
+    // Parms: id (int): request ID. If given this parameter, the function will return a single matching request
     //                  !! NOTE! If you give get_requests an ID it will ignore all other parms !!
     //
     //        fan_art (yes | no ):
@@ -105,7 +105,7 @@ class starcall_rest extends WP_REST_Controller {
     //          both: include everything
     //			no (or anything else) (default) =  omit NSFW results
     //
-	//		  status (submitted | approved | pending | trash ):
+    //		  status (submitted | approved | pending | trash ):
     //		  	submitted: returns requests awaiting approval
     //          approved (default):  requests visible to public
     //------------------------------------------------------------------------------------------------------------------
@@ -239,10 +239,10 @@ class starcall_rest extends WP_REST_Controller {
     //
     // Any logged in user may create requests. Only moderators and the owner of the request in question may modify.
     //
-  	// URL: https://starcall.sylessae.com/wp-json/starcall/v1/requests/
-  	// Method: POST
+    // URL: https://starcall.sylessae.com/wp-json/starcall/v1/requests/
+    // Method: POST
     // Returns: JSON with true/false and an error if applicable
-  	// Parms: JSON object
+    // Parms: JSON object
     //--------------------------------------------------------------------------------------------------------------------
 
         global $wpdb;
@@ -276,10 +276,10 @@ class starcall_rest extends WP_REST_Controller {
     // This function deletes reques. It takes only one parm, the ID of the request to delete. Only the owner of the request
     // or a moderator may delete requests.
     //
-  	// URL: https://starcall.sylessae.com/wp-json/starcall/v1/requests/
-  	// Method: DELETE
+    // URL: https://starcall.sylessae.com/wp-json/starcall/v1/requests/
+    // Method: DELETE
     // Returns: JSON with true/false and an error if applicable
-  	// Parms: ID
+    // Parms: ID
     //--------------------------------------------------------------------------------------------------------------------
 
         global $wpdb;
@@ -306,10 +306,10 @@ class starcall_rest extends WP_REST_Controller {
     //
     // TODO add description and other stuff here
     //
-  	// URL: https://starcall.sylessae.com/wp-json/starcall/v1/comments/
-  	// Method: GET
+    // URL: https://starcall.sylessae.com/wp-json/starcall/v1/comments/
+    // Method: GET
     // Returns: JSON
-  	// Parms: JSON
+    // Parms: JSON
     //--------------------------------------------------------------------------------------------------------------------
 
         global $wpdb;
@@ -327,10 +327,10 @@ class starcall_rest extends WP_REST_Controller {
     //
     // TODO add description and other stuff here
     //
-  	// URL: https://starcall.sylessae.com/wp-json/starcall/v1/comments/
-  	// Method: POST
+    // URL: https://starcall.sylessae.com/wp-json/starcall/v1/comments/
+    // Method: POST
     // Returns: JSON
-  	// Parms: JSON
+    // Parms: JSON
     //--------------------------------------------------------------------------------------------------------------------
 
         global $wpdb;
@@ -348,10 +348,10 @@ class starcall_rest extends WP_REST_Controller {
     //
     // TODO add description and other stuff here
     //
-  	// URL: https://starcall.sylessae.com/wp-json/starcall/v1/comments/
-  	// Method: DELETE
+    // URL: https://starcall.sylessae.com/wp-json/starcall/v1/comments/
+    // Method: DELETE
     // Returns: JSON
-  	// Parms: JSON
+    // Parms: JSON
     //--------------------------------------------------------------------------------------------------------------------
 
         global $wpdb;
