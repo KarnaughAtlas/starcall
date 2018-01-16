@@ -54,18 +54,6 @@ class starcall_rest extends WP_REST_Controller {
         ) );
 
 
-       		//TODO register route for getting comments
-       			// Anyone can get comments
-
-			//TODO register route for adding comment
-				// Must be logged in to add a comment
-
-			//TODO register route for editing coment
-				// Must be admin or comment owner
-
-			//TODO register route for deleting comment
-				// Must be admin or comment owner
-
 			//TODO register route for submitting a fulfillment
 				// Must be special artist role?
 
@@ -111,8 +99,10 @@ class starcall_rest extends WP_REST_Controller {
     //------------------------------------------------------------------------------------------------------------------
 
         global $wpdb;
-        $sql = 'SELECT *
-        FROM wpsc_rq_requests';
+        $sql = 'SELECT request_id,title,user_login,nsfw,fan_art,description,
+                create_date,edit_date,status
+                FROM wpsc_rq_requests
+                JOIN wp_users ON wpsc_rq_requests.user_id = wp_users.ID';
 
         // Determine if we need to add WHERE clauses to our query
 		$params = $request->get_params();

@@ -1,22 +1,22 @@
 
 jQuery( document ).ready(function() {
-   get_requests();
+   getRequests();
 });
 
 jQuery('#requestdesc').on('keypress', function (e) {
    var code = e.keyCode || e.which;
    if (code==13) {
-    get_requests(jQuery(this).val());
+    getRequests(jQuery(this).val());
    }
 } );
 
 jQuery( '#testrestbutton' ).on( 'click', function ( e )  {
  e.preventDefault();
- get_requests(jQuery('#requestdesc').val());
+ getRequests(jQuery('#requestdesc').val());
 } );
 
 
-function get_requests (filter) {
+function getRequests (filter) {
 
    if (filter) {
        var endpoint = '/wp-json/starcall/v1/requests/' + '?desc=' + filter;
@@ -26,15 +26,11 @@ function get_requests (filter) {
 
    console.log("Gonna call me some ajax stuff");
 
-   jQuery("#testingstuff").text("Loading...");
-
-
-
    jQuery.ajax( {
      url: endpoint,
      success: function ( response ) {
            console.log("Got into the success function");
-           jQuery('#testingstuff').text(response);
+           makeTable(response);
       },
      failure: function ( response, err ) {
        console.log("Got into the failure function");
@@ -43,6 +39,20 @@ function get_requests (filter) {
        document.write(response);
      },
      cache: false,
-     dataType: 'text'
+     dataType: 'json'
    } );
+}
+
+function makeTable (jsonRequests) {
+
+    jQuery('#requesttable tbody').empty();
+
+    for (var i = 0; i < jsonRequests.length; i++) {
+        markup = "<tr><td>" + jsonRequests[i].user_id + "</td>" +
+                 "<td>" + jsonRequests[i].title + "</td>" +
+                 "<td>" + jsonRequests[i].description.slice(0,30) + "</td></tr>";
+        jQuery('#requesttable tbody').append(markup);
+    }
+
+
 }
