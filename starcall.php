@@ -117,7 +117,7 @@ class starcall_rest extends WP_REST_Controller {
         // Determine if we need to add WHERE clauses to our query
 		$params = $request->get_params();
 
-		if ($params['request_id']) { // fetching a specific request, not user-selectable. Ignore other parms.
+		if (isset($params['request_id'])) { // fetching a specific request, not user-selectable. Ignore other parms.
     		$filters[] =  ' WHERE request_id = ' . $params['id'];
 
 		} elseif ($params) { // we have filters
@@ -132,7 +132,7 @@ class starcall_rest extends WP_REST_Controller {
 			//	all = include all (default behavior)
 			//-------------------------------------------------------------------------
 
-			if ($params['fan_art']) {
+			if (isset($params['fan_art'])) {
 
 				if($params['fan_art'] == "yes") { // Fan art characters only
 					$filters[] =  'fan_art = 1';
@@ -150,7 +150,7 @@ class starcall_rest extends WP_REST_Controller {
 			//	Text-based filter
 			//-------------------------------------------------------------------------
 
-			if ($params['desc']) {
+			if (isset($params['desc'])) {
 
 				$filters[] =  'description LIKE "%' . trim($params['desc']) . '%"';
 			}
@@ -162,16 +162,20 @@ class starcall_rest extends WP_REST_Controller {
 			//	no = omit NSFW (default behavior)
 			//-------------------------------------------------
 
-			if ($params['nsfw'] == "yes") {
-				// Include NSFW and regular results, so don't add anything to the query
+			if (isset($params['nsfw'])) {
 
-			} elseif ($params['nsfw'] == "only") {
-				// Include only NSFW results
-				$filters[] =  'nsfw = 1';
 
-			} else {
-				// Default is omit NSFW results
-				$filters[] =  'nsfw = 0';
+                if ($params['nsfw'] == 'yes') {
+                   // Include NSFW and regular results, so don't add anything to the query
+
+                } elseif ($params['nsfw'] == "only") {
+                    // Include only NSFW results
+                    $filters[] =  'nsfw = 1';
+
+                } else {
+                    // Default is omit NSFW results
+                    $filters[] =  'nsfw = 0';
+                }
 			}
 
 			//-------------------------------------------------------------------------
@@ -185,31 +189,33 @@ class starcall_rest extends WP_REST_Controller {
 
 			// TODO: Only allow moderators and above to filter on status, otherwise user will only see approved requests
 
-			if ($params['status'] == 'submitted') {
+            if(isset($params['status'])) {
+                if ($params['status'] == 'submitted') {
 
-				$filters[] =  "status = 'submitted'";
+                    $filters[] =  "status = 'submitted'";
 
-			} elseif ($params['status'] == 'deleted') {
+                } elseif ($params['status'] == 'deleted') {
 
-				$filters[] =  "status = 'deleted'";
+                    $filters[] =  "status = 'deleted'";
 
-			} elseif ($params['status'] == 'pending') {
+                } elseif ($params['status'] == 'pending') {
 
-				$filters[] =  "status = 'pending'";
+                    $filters[] =  "status = 'pending'";
 
-			} elseif ($params['status'] == 'all') {
-				 // Include all so don't add anything
+                } elseif ($params['status'] == 'all') {
+                     // Include all so don't add anything
 
-			} else {
-				 // Default is include only 'approved' requests
-				$filters[] =  "status = 'approved'";
+                } else {
+                     // Default is include only 'approved' requests
+                    $filters[] =  "status = 'approved'";
 
-			}
+                }
+            }
 
 			//TODO allow filtering on artist, submitter <- search by name?
 			//TODO include date filters?
 
-			if ($filters) {
+			if (isset($filters)) {
 				$sql .= ' WHERE ' . implode(' AND ', $filters);
 			}
 
@@ -391,8 +397,10 @@ register_activation_hook( __FILE__, 'starcall_custom_roles' );
 function starcall_enqueue_scripts () {
 
 wp_register_script('starcall_browser', plugins_url('js/browser.js', __FILE__), array('jquery'),'1.0', true);
+wp_register_script('testrest', plugins_url('js/testrest.js', __FILE__), array('jquery','wp-api'),'1.0', true);
 
 wp_enqueue_script('starcall_browser');
+wp_enqueue_script('testrest');
 
 }
 
