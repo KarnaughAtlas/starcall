@@ -62,33 +62,26 @@ function makePage (page) {
     console.log("json length: " + requests.length);
     jQuery('#requesttable tbody').empty();
 
-    for (var i = (page - 1) * requests_per_page;
-         i < (page * requests_per_page) &&
-         i < requests.length; i++) {
-
-        markup = "<tr><td>" + requests[i].user_login + "</td>" +
-                 "<td>" + requests[i].title + "</td>" +
-                 "<td>" + requests[i].description.slice(0,30) + "</td>" +
-                 "<td>" + requests[i].create_date + "</td></tr>";
+    if (requests.length == 0) {
+        markup = '<tr><td colspan = "4">' +
+            "No requests found. Try broadening your search.</tr></td>";
         jQuery('#requesttable tbody').append(markup);
+    } else {
+
+        for (var i = (page - 1) * requests_per_page;
+             i < (page * requests_per_page) &&
+             i < requests.length; i++) {
+
+            markup = "<tr><td>" + requests[i].user_login + "</td>" +
+                     "<td>" + requests[i].title + "</td>" +
+                     "<td>" + requests[i].description.slice(0,30) + "</td>" +
+                     "<td>" + requests[i].create_date + "</td></tr>";
+            jQuery('#requesttable tbody').append(markup);
+        }
     }
 
     current_page = page;
     makeNavButtons();
-}
-
-function nextPage () {
-    if (current_page < total_pages) {
-        current_page ++;
-        makePage(current_page);
-    }
-}
-
-function prevPage () {
-    if (current_page > 1) {
-        current_page --;
-        makePage(current_page);
-    }
 }
 
 function makeNavButtons() {
@@ -123,4 +116,18 @@ function makeNavButtons() {
      e.preventDefault();
      makePage(jQuery(this).text());
     } );
+}
+
+function nextPage () {
+    if (current_page < total_pages) {
+        current_page ++;
+        makePage(current_page);
+    }
+}
+
+function prevPage () {
+    if (current_page > 1) {
+        current_page --;
+        makePage(current_page);
+    }
 }
