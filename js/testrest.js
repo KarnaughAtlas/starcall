@@ -1,40 +1,51 @@
 
+//Number of requests per page
+var requests_per_page = 20;
+
+var current_page = 1;
+var total_pages;
+var requests = new Object();
+
 jQuery( document ).ready(function() {
-   getRequests();
+   jQuery.when(getRequests()).done(function(e) {
+       makePage(1);
+   });
 });
 
 jQuery('#requestdesc').on('keypress', function (e) {
    var code = e.keyCode || e.which;
    if (code==13) {
-    getRequests(jQuery(this).val());
+       jQuery.when(getRequests(jQuery(this).val())).done(function(e) {
+           makePage(1);
+       });
    }
 } );
 
-jQuery( '#testrestbutton' ).on( 'click', function ( e )  {
+jQuery('#testrestbutton').on( 'click', function ( e )  {
  e.preventDefault();
- getRequests(jQuery('#requestdesc').val());
+ jQuery.when(getRequests(jQuery('#requestdesc').val())).done(function(e) {
+     makePage(1);
+ });
 } );
-
 
 function getRequests (filter) {
 
+   console.log("In getRequests");
    if (filter) {
        var endpoint = '/wp-json/starcall/v1/requests/' + '?desc=' + filter;
    } else {
        var endpoint = '/wp-json/starcall/v1/requests/'
    }
 
-   console.log("Gonna call me some ajax stuff");
-
-   jQuery.ajax( {
+   return jQuery.ajax( {
      url: endpoint,
      success: function ( response ) {
-           console.log("Got into the success function");
-           makeTable(response);
+           requests = response;
+           total_pages = Math.ceil(response.length / requests_per_page);
       },
      failure: function ( response, err ) {
        console.log("Got into the failure function");
-       alert ("It didn't work?");
+       alert ("It didn't work");
        document.write (err);
        document.write(response);
      },
@@ -43,16 +54,73 @@ function getRequests (filter) {
    } );
 }
 
-function makeTable (jsonRequests) {
+function makePage (page) {
 
+    console.log("Entering makePage");
+    console.log("page: " + page);
+    console.log("requests_per_page: " + requests_per_page);
+    console.log("json length: " + requests.length);
     jQuery('#requesttable tbody').empty();
 
-    for (var i = 0; i < jsonRequests.length; i++) {
-        markup = "<tr><td>" + jsonRequests[i].user_id + "</td>" +
-                 "<td>" + jsonRequests[i].title + "</td>" +
-                 "<td>" + jsonRequests[i].description.slice(0,30) + "</td></tr>";
+    for (var i = (page - 1) * requests_per_page;
+         i < (page * requests_per_page) &&
+         i < requests.length; i++) {
+
+        markup = "<tr><td>" + requests[i].user_login + "</td>" +
+                 "<td>" + requests[i].title + "</td>" +
+                 "<td>" + requests[i].description.slice(0,30) + "</td>" +
+                 "<td>" + requests[i].create_date + "</td></tr>";
         jQuery('#requesttable tbody').append(markup);
     }
 
+    current_page = page;
+    makeNavButtons();
+}
 
+function nextPage () {
+    if (current_page < total_pages) {
+        current_page ++;
+        makePage(current_page);
+    }
+}
+
+function prevPage () {
+    if (current_page > 1) {
+        current_page --;
+        makePage(current_page);
+    }
+}
+
+function makeNavButtons() {
+
+    jQuery('#pagination').empty();
+
+    jQuery('#pagination').append('<button id="prevpage"> < </button>');
+
+    for (i = 1; i <= total_pages; i++) {
+        if (i == current_page) {
+            jQuery('#pagination').append('<button class="thispage">' + i +
+            '  </button>');
+        } else {
+            jQuery('#pagination').append('<button class="pageselect">' + i +
+            '  </button>');
+        }
+    }
+
+    jQuery('#pagination').append('<button id="nextpage"> > </button>');
+
+    jQuery( '#nextpage' ).on( 'click', function ( e )  {
+     e.preventDefault();
+     nextPage();
+    } );
+
+    jQuery( '#prevpage' ).on( 'click', function ( e )  {
+     e.preventDefault();
+     prevPage();
+    } );
+
+    jQuery( '.pageselect' ).on( 'click', function ( e )  {
+     e.preventDefault();
+     makePage(jQuery(this).text());
+    } );
 }

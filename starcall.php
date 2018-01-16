@@ -214,8 +214,9 @@ class starcall_rest extends WP_REST_Controller {
 			$sql .=  " WHERE nsfw = 0 AND status = 'approved'";
 		}
 
-		write_log( "JOSHDEBUG: " . json_encode($params) );
-		write_log( "JOSHDEBUG: " . $sql);
+        //Add the SQL order bys here
+        $sql .= " ORDER BY RAND()";
+
 		$requests = $wpdb->get_results($sql, ARRAY_A );
 
 		return($requests);
