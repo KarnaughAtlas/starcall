@@ -387,11 +387,9 @@ register_activation_hook( __FILE__, 'starcall_custom_roles' );
 
 function starcall_enqueue_scripts () {
 
-wp_register_script('starcall_browser', plugins_url('js/browser.js', __FILE__), array('jquery'),'1.0', true);
-wp_register_script('testrest', plugins_url('js/testrest.js', __FILE__), array('jquery','wp-api'),'1.0', true);
+wp_register_script('starcall_browser', plugins_url('js/browser.js', __FILE__), array('jquery','wp-api'),'1.0', true);
 
 wp_enqueue_script('starcall_browser');
-wp_enqueue_script('testrest');
 
 }
 
