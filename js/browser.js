@@ -21,7 +21,7 @@ jQuery('#requestdesc').on('keypress', function (e) {
    }
 } );
 
-jQuery('#testrestbutton').on( 'click', function ( e )  {
+jQuery('#searchbutton').on( 'click', function ( e )  {
  e.preventDefault();
  jQuery.when(getRequests(jQuery('#requestdesc').val())).done(function(e) {
      makePage(1);
@@ -72,31 +72,50 @@ function makePage (page) {
              i < (page * requests_per_page) &&
              i < requests.length; i++) {
 
-            markup = "<tr><td>" + requests[i].user_login + "</td>" +
-                     "<td>" + requests[i].title + "</td>" +
-                     "<td>" + requests[i].description.slice(0,30) + "</td>" +
-                     "<td>" + requests[i].create_date + "</td></tr>";
+            markup = "<tr class='requestrow'><td>" +
+                                       requests[i].user_login + "</td>" +
+                     "<td class='title'>" + requests[i].title + "</td>" +
+                     "<td class='description'>" +
+                                 requests[i].description.slice(0,30) + "</td>" +
+                     "<td class='create_date'>" +
+                                             requests[i].create_date + "</td>" +
+                     "<td class='request_id' style='display:none'>" +
+                     requests[i].request_id + "</td></tr>";
+
             jQuery('#requesttable tbody').append(markup);
         }
+
+        // Add function for clicking on rows
+        jQuery('.requestrow').on('click', function(e) {
+            // Eventually this will link us to the request page - test for now
+
+            var url = 'https://starcall.sylessae.com/request/?id=' +
+                                          jQuery('td.request_id', this).text();
+
+            window.open(url,"_self")
+        });
     }
 
     current_page = page;
-    makeNavButtons();
+
+    // Clear page buttons and make more if we have more than one page
+    jQuery('#pagination').empty();
+    if (total_pages > 1) {
+        makeNavButtons();
+    }
 }
 
 function makeNavButtons() {
-
-    jQuery('#pagination').empty();
 
     jQuery('#pagination').append('<button id="prevpage"> < </button>');
 
     for (i = 1; i <= total_pages; i++) {
         if (i == current_page) {
             jQuery('#pagination').append('<button class="thispage">' + i +
-            '  </button>');
+            '</button>');
         } else {
             jQuery('#pagination').append('<button class="pageselect">' + i +
-            '  </button>');
+            '</button>');
         }
     }
 

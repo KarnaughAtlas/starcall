@@ -381,15 +381,26 @@ function starcall_custom_roles () {
 
 register_activation_hook( __FILE__, 'starcall_custom_roles' );
 
-//----------------------------------------------------------
+//------------------------------------------------------------------------------
 // Enqueue scripts
-//----------------------------------------------------------
+//------------------------------------------------------------------------------
 
 function starcall_enqueue_scripts () {
 
-wp_register_script('starcall_browser', plugins_url('js/browser.js', __FILE__), array('jquery','wp-api'),'1.0', true);
+    wp_register_script('starcall_browser',
+                        plugins_url('js/browser.js', __FILE__),
+                        array('jquery','wp-api'),'1.0', true);
 
-wp_enqueue_script('starcall_browser');
+    wp_register_script('request_page',
+                        plugins_url('js/request.js', __FILE__),
+                        array('jquery','wp-api'),'1.0', true);
+
+    // We only want the request script on the corresponding page
+    if (is_page("request") {
+        wp_enqueue_script('request_page');
+    }
+
+    wp_enqueue_script('starcall_browser');
 
 }
 
