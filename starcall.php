@@ -361,8 +361,12 @@ class starcall_rest extends WP_REST_Controller {
                 success = $wpdb->insert( $table, $data);
 
                 if($success) {
-                    // Insert successful. Return ID of inserted row
-                    
+                    // Insert successful!
+                    $reponse->success = true;
+                    $response->new_id = $wpdb->insert_id;
+
+                    return(jso_encode($response));
+
                 } else {
                     // Error inserting
                 }
