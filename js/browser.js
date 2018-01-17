@@ -30,7 +30,6 @@ jQuery('#searchbutton').on( 'click', function ( e )  {
 
 function getRequests (filter) {
 
-   console.log("In getRequests");
    if (filter) {
        var endpoint = '/wp-json/starcall/v1/requests/' + '?desc=' + filter;
    } else {
@@ -89,7 +88,7 @@ function makePage (page) {
         jQuery('.requestrow').on('click', function(e) {
             // Eventually this will link us to the request page - test for now
 
-            var url = 'https://starcall.sylessae.com/request/?id=' +
+            var url = 'https://starcall.sylessae.com/request/?request_id=' +
                                           jQuery('td.request_id', this).text();
 
             window.open(url,"_self")

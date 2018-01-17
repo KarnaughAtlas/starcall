@@ -99,16 +99,17 @@ class starcall_rest extends WP_REST_Controller {
     //------------------------------------------------------------------------------------------------------------------
 
         global $wpdb;
-        $sql = 'SELECT request_id,title,user_login,nsfw,fan_art,description,
+        $sql = 'SELECT request_id,title,user_id,user_login,nsfw,fan_art,description,
                 create_date,edit_date,status
                 FROM wpsc_rq_requests
                 JOIN wp_users ON wpsc_rq_requests.user_id = wp_users.ID';
 
         // Determine if we need to add WHERE clauses to our query
 		$params = $request->get_params();
+        write_log($params);
 
 		if (isset($params['request_id'])) { // fetching a specific request, not user-selectable. Ignore other parms.
-    		$filters[] =  ' WHERE request_id = ' . $params['id'];
+    		$filters[] =  'request_id = ' . $params['request_id'];
 
 		} elseif ($params) { // we have filters
 
@@ -205,17 +206,19 @@ class starcall_rest extends WP_REST_Controller {
 			//TODO allow filtering on artist, submitter <- search by name?
 			//TODO include date filters?
 
-			if (isset($filters)) {
-				$sql .= ' WHERE ' . implode(' AND ', $filters);
-			}
-
 		} else {
 			// No params, but by default we still need to filter out NSFW results and include only approved requests
 			$sql .=  " WHERE nsfw = 0 AND status = 'approved'";
 		}
 
+        if (isset($filters)) {
+            $sql .= ' WHERE ' . implode(' AND ', $filters);
+        }
+
         //Add the SQL order bys here
         $sql .= " ORDER BY RAND()";
+
+        write_log($sql);
 
 		$requests = $wpdb->get_results($sql, ARRAY_A );
 
@@ -396,11 +399,14 @@ function starcall_enqueue_scripts () {
                         array('jquery','wp-api'),'1.0', true);
 
     // We only want the request script on the corresponding page
-    if (is_page("request") {
+    if (is_page("request")) {
         wp_enqueue_script('request_page');
     }
+    // Search request page script
+    if (is_page("requests")) {
+        wp_enqueue_script('starcall_browser');
+    }
 
-    wp_enqueue_script('starcall_browser');
 
 }
 
