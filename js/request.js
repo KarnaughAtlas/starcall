@@ -35,7 +35,7 @@ function getRequest() {
 function loadRequest () {
     console.log("I am in loadRequest");
     var markup = '<h1>'+ requestJSON[0].title + '</h1><br>' +
-                 '<h2>Requested by: ' + requestJSON[0].user_login + '</h2><br>' +
+                 '<h3>Requested by: ' + requestJSON[0].user_login + '</h3><br>' +
                  requestJSON[0].description;
 
     jQuery("#requestarea").append(markup);
