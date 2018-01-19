@@ -23,7 +23,7 @@
       public function register_routes() {
           $namespace = $this->my_namespace . $this->my_version;
 
-          // Request request routes
+          // Register request routes
 
           register_rest_route( $namespace, '/requests', array(
               array(
@@ -38,6 +38,8 @@
                   'methods'         => WP_REST_Server::DELETABLE,
                   'callback'        => array( $this, 'delete_request' ) ),
           ) );
+
+          // Register comment routes
 
           register_rest_route( $namespace, '/comments', array(
               array(
@@ -54,11 +56,7 @@
           ) );
 
 
-  			//TODO register route for submitting a fulfillment
-  				// Must be special artist role?
-
-  			//TODO register route for editing a fulfillment
-  				// Must be mod or owner
+  			//TODO register gift routes
       }
 
     // Register our REST Server
@@ -470,28 +468,68 @@
       }
 
       public function get_comments (WP_REST_Request $request) {
-
       //------------------------------------------------------------------------
       // Function: get_comments
       //
-      // TODO add description and other stuff here
+      // This request gets comments. Initial support only for retrieving by
+      /// user ID and request ID.
       //
       // URL: https://starcall.sylessae.com/wp-json/starcall/v1/comments/
       // Method: GET
       // Returns: JSON
-      // Parms: JSON
+      // Parms: URL parms - user_id or request_id
       //------------------------------------------------------------------------
 
+          // Globals - now that I think about this, I probably don't need to
+          // decalre $wpdb in every damn function
           global $wpdb;
 
-          // TODO write this function :-)
+          // Objects
+          $comments = new \stdClass();
+
+          // Initialize SQL query
+          $sql = 'SELECT comment_id,request_id,author_id, u1.user_login AS author,
+                         reply_id,comment_text, create_date, description,
+                         create_date, edit_user, u2.user_login AS editing_user,
+                         edit_date, status
+                  FROM wpsc_rq_requests AS comments
+                  JOIN wp_users AS u1 ON comments.user_id = u1.ID
+                  JOIN wp_users AS u2 ON comments.edit_user = u2.ID';
+
+          // Get parms out of the url
+          $params = $request->get_params();
+
+          if($params) {
+              // Build the WHERE clause
+              if(isset($params['user_id'])) {
+                  $filters[] = 'author_id = ' + $params['user_id'];
+              }
+
+              if(isset($params['request_id'])) {
+                  $filters[] = 'request_ID = ' + $params['request_id'];
+              }
+
+          } else {
+              // No filters supplied by user
+              if (!current_user_can('administrator') &&
+                  !current_user_can('moderator')) {
+                    // User is a filthy peasant, they may not see the glory of
+                    // unapproved comments
+                    $filters = 'status = "approved"';
+                  }  
+          }
+
+          // IMPLODE THE FILTERS
+          if (isset($filters)) {
+              $sql .= ' WHERE ' . implode(' AND ', $filters);
+          }
+
+          // Query the database and return the response
 
           return("This isn't done yet!");
-
       }
 
       public function post_comment (WP_REST_Request $request) {
-
       //------------------------------------------------------------------------
       // Function: post_comment
       //
