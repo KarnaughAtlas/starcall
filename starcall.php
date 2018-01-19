@@ -68,18 +68,21 @@
 
       public function get_requests( WP_REST_Request $request ){
 
-      //------------------------------------------------------------------------------------------------------------------
+      //------------------------------------------------------------------------
       // Function: get_requests
       //
-      // This function gets requests (no waaaaay). If called with no parameters it returns all SFW requests with
-      // a status = 'approved' and nsfw = 0. Otherwise, you can give it parms in the URL and it'll filter requests.
-      // If given a request_id it will ignore all other parms and return the request with that ID.
+      // This function gets requests (no waaaaay). If called with no parameters
+      // it returns all SFW requests with a status = 'approved' and nsfw = 0.
+      // Otherwise, you can give it parms in the URL and it'll filter requests.
+      // If given a request_id it will ignore all other parms and return the
+      // request with that ID.
       //
       // URL: https://starcall.sylessae.com/wp-json/starcall/v1/requests/
       // Method: GET
       // Returns: Requests JSON object
-      // Parms: id (int): request ID. If given this parameter, the function will return a single matching request
-      //                  !! NOTE! If you give get_requests an ID it will ignore all other parms !!
+      // Parms: id (int): request ID. If given this parameter, the function will
+      // return a single matching request.
+      // NOTE: If you give get_requests an ID it will ignore all other parms!
       //
       //        fan_art (yes | no ):
       //        	yes = only fan art
@@ -99,10 +102,12 @@
       //------------------------------------------------------------------------------------------------------------------
 
           global $wpdb;
-          $sql = 'SELECT request_id,title,user_id,user_login,nsfw,fan_art,description,
-                  create_date,edit_date,status
+          $sql = 'SELECT request_id,title,user_id,user_login,nsfw,fan_art,
+                         reference_links, description, create_date, edit_date,
+                         status
                   FROM wpsc_rq_requests
                   JOIN wp_users ON wpsc_rq_requests.user_id = wp_users.ID';
+          $requests = new \stdClass();
 
           // Determine if we need to add WHERE clauses to our query
   		$params = $request->get_params();
@@ -217,9 +222,27 @@
           //Add the SQL order bys here
           $sql .= " ORDER BY RAND()";
 
-          write_log($sql);
+  		$requests = $wpdb->get_results($sql);
 
-  		$requests = $wpdb->get_results($sql, ARRAY_A );
+        // Now we need to figure out if the user has auth rights to modify the requests
+
+        $userIsAdmin = (current_user_can('administrator') || current_user_can('moderator'));
+        $currentUser = get_current_user_id();
+
+        write_log("Current user: ".$currentUser." User is admin: " .$userIsAdmin);
+
+        foreach ($requests as $request) {
+            if ($userIsAdmin){
+                // Admins and moderators can modify any request
+                $request->user_authorized = true;
+            } elseif ($currentUser == $request->user_id) {
+                // Users can modify their own requests
+                $request->user_authorized = true;
+            } else {
+                // No touchy
+                $request->user_authorized = false;
+            }
+        }
 
   		return($requests);
   	}
@@ -233,6 +256,8 @@
       // consumes a JSON object in the body of the request.
 
       // !!NOTE!!
+
+      // Be careful!
 
       // If post_requests is given an id parm it assumes we're modifying an
       // existing request. You can not create a request with a specific ID,
@@ -289,15 +314,16 @@
                         $table = 'wpsc_rq_requests';
 
                         // Build data array for fields to update
+
                         $data = array(
                             'title' => $requestToUpdate->title,
                           'user_id' => $requestToUpdate->user_id,
                              'nsfw' => $requestToUpdate->nsfw,
                           'fan_art' => $requestToUpdate->fan_art,
-                     'social_media' => $requestToUpdate->social_media,
+                  'reference_links' => $requestToUpdate->reference_links,
                       'description' => $requestToUpdate->description,
-                         'how_hear' => $requestToUpdate->how_hear,
-                           'status' => $requestToUpdate->status
+                           'status' => $requestToUpdate->status,
+                        'edit_user' => $currentUser
                        );
 
                        // Build the where array
@@ -309,9 +335,8 @@
 
                        if ($success) {
                            // We did it, guys
-                           $response->sucess = true;
+                           $response->success = true;
                            $response->rows_updaded = $success;
-                           return($response);
 
                        } else {
                            // Update failed
@@ -321,22 +346,18 @@
 
                            $response->success = false;
                            $response->errmsg = 'Error updating request';
-
-                           return($response);
                        }
 
                     } else {
                         // User is not authorized, send error
                         $response->success = false;
                         $response->errmsg = 'User is not authorized';
-                        return($response);
                     }
 
                 } else {
                     // Didn't find the request, send error
                     $response->success = false;
                     $response->errmsg = 'Request with ID ' . $requestToUpdate->request_id . ' not found';
-                    return($response);
                 }
             } else {
                 // We're submitting a new request. Do we have a valid user?
@@ -347,17 +368,21 @@
 
                     // Set the table
                     $table = 'wpsc_rq_requests';
+                    $requestStatus = 'submitted';
+
+                    $currentUser = get_current_user_id();
 
                     // Build data array for fields to insert
                     $data = array(
                         'title' => $requestToUpdate->title,
-                      'user_id' => $requestToUpdate->user_id,
+                      'user_id' => $currentUser,
                          'nsfw' => $requestToUpdate->nsfw,
                       'fan_art' => $requestToUpdate->fan_art,
                  'social_media' => $requestToUpdate->social_media,
+              'reference_links' => $requestToUpdate->reference_links,
                   'description' => $requestToUpdate->description,
                      'how_hear' => $requestToUpdate->how_hear,
-                       'status' => $requestToUpdate->status
+                       'status' => $requestStatus
                    );
 
 
@@ -367,68 +392,86 @@
 
                     if($success) {
                         // Insert successful!
-                        $reponse->success = true;
+                        $response->success = true;
                         $response->new_id = $wpdb->insert_id;
-
-                        return($response);
 
                     } else {
                         // Error inserting
                         $response->success = false;
                         $response->errmsg = 'Error occurred during insert';
-
-                        return($response);
                     }
 
                 } else {
                     // User is not valid or not logged in
                     $response->success = false;
                     $response->errmsg = 'Invalid user - are you logged in?';
-                    return($response);
                 }
             }
           } else {
             // We didn't get the post body
             $response->success = false;
             $response->errmsg = "Failed to get post body";
-            return($response);
           }
+
+          return($response);
       }
 
       public function delete_request (WP_REST_Request $request) {
 
-      //--------------------------------------------------------------------------------------------------------------------
-      // Function: delete_request
-      //
-      // This function deletes reques. It takes only one parm, the ID of the request to delete. Only the owner of the request
-      // or a moderator may delete requests.
-      //
-      // URL: https://starcall.sylessae.com/wp-json/starcall/v1/requests/
-      // Method: DELETE
-      // Returns: JSON with true/false and an error if applicable
-      // Parms: ID
-      //--------------------------------------------------------------------------------------------------------------------
+          //--------------------------------------------------------------------
+          // Function: delete_request
+          //
+          // This function deletes reques. It takes only one parm, the ID
+          // of the request to delete. Note - only moderators and administrators
+          // can actually delete requests. Request owners can only set the status
+          // to 'trash' which is done via post_request.
+          //
+          // URL: https://starcall.sylessae.com/wp-json/starcall/v1/requests/
+          // Method: DELETE
+          // Returns: JSON with true/false and an error if applicable
+          // Parms: ID
+          //--------------------------------------------------------------------
+
 
           global $wpdb;
+          $response = new \stdClass();
 
-          // TODO write this function :-)
+          $params = $request->get_params();
 
-          // Do we have an ID?
-              // Is this user allowed to delete this request (mod or request owner) ?
-                  // Delete request
-                  // Return true or descriptive error
-              // User can not delete
-                  // Return descriptive error
-          // We don't have an ID
-              // Return descriptive error
+          if (isset($params['request_id'])) {
 
-          return("This isn't done yet!");
+              if (current_user_can('administrator') || current_user_can('moderator')) {
+                  // User is authorized
+                  $deletedRows = $wpdb->delete( 'wpsc_rq_requests', array( 'ID' => $parms['request_id'] ) );
+                  if ($deletedRows != 1) {
+                      // We should only have affected one row
+                      $response->success = true;
+                  } else {
+                      // Something went wrong
+                      write_log('Attempting to delete ID: ' . $parms['request_id']);
+                      write_log('Error occurred, affected '.$deletedRows.' rows');
+                      $response->success = false;
+                      $response->errmsg = 'Error occurred during delete - see debug.log';
+                  }
 
+              } else {
+                  //user is not authorized
+                  $response->success = false;
+                  $response->errmsg = 'User is not authorized';
+              }
+
+          } else {
+              // No ID, send an error
+              $response->success = false;
+              $response->errmsg = 'No ID passed for delete';
+          }
+
+          return($response);
       }
 
       public function get_comments (WP_REST_Request $request) {
 
-      //--------------------------------------------------------------------------------------------------------------------
+      //------------------------------------------------------------------------
       // Function: get_comments
       //
       // TODO add description and other stuff here
@@ -437,7 +480,7 @@
       // Method: GET
       // Returns: JSON
       // Parms: JSON
-      //--------------------------------------------------------------------------------------------------------------------
+      //------------------------------------------------------------------------
 
           global $wpdb;
 
@@ -449,7 +492,7 @@
 
       public function post_comment (WP_REST_Request $request) {
 
-      //--------------------------------------------------------------------------------------------------------------------
+      //------------------------------------------------------------------------
       // Function: post_comment
       //
       // TODO add description and other stuff here
@@ -458,7 +501,7 @@
       // Method: POST
       // Returns: JSON
       // Parms: JSON
-      //--------------------------------------------------------------------------------------------------------------------
+      //------------------------------------------------------------------------
 
           global $wpdb;
 
@@ -470,7 +513,7 @@
 
       public function delete_comment (WP_REST_Request $request) {
 
-      //--------------------------------------------------------------------------------------------------------------------
+      //------------------------------------------------------------------------
       // Function: delete_comment
       //
       // TODO add description and other stuff here
@@ -479,7 +522,7 @@
       // Method: DELETE
       // Returns: JSON
       // Parms: JSON
-      //--------------------------------------------------------------------------------------------------------------------
+      //------------------------------------------------------------------------
 
           global $wpdb;
 
@@ -489,6 +532,67 @@
 
       }
 
+      public function get_gifts (WP_REST_Request $request) {
+
+      //------------------------------------------------------------------------
+      // Function: get_gifts
+      //
+      // TODO add description and other stuff here
+      //
+      // URL: https://starcall.sylessae.com/wp-json/starcall/v1/gifts/
+      // Method: GET
+      // Returns: JSON
+      // Parms: JSON
+      //------------------------------------------------------------------------
+
+          global $wpdb;
+
+          // TODO write this function :-)
+
+          return("This isn't done yet!");
+
+      }
+
+      public function post_gift (WP_REST_Request $request) {
+
+      //------------------------------------------------------------------------
+      // Function: post_gift
+      //
+      // TODO add description and other stuff here
+      //
+      // URL: https://starcall.sylessae.com/wp-json/starcall/v1/gifts/
+      // Method: POST
+      // Returns: JSON
+      // Parms: JSON
+      //------------------------------------------------------------------------
+
+          global $wpdb;
+
+          // TODO write this function :-)
+
+          return("This isn't done yet!");
+
+      }
+
+      public function delete_gift (WP_REST_Request $request) {
+
+      //------------------------------------------------------------------------
+      // Function: delete_gift
+      //
+      // TODO add description and other stuff here
+      //
+      // URL: https://starcall.sylessae.com/wp-json/starcall/v1/gifts/
+      // Method: DELETE
+      // Returns: JSON
+      // Parms: JSON
+      //------------------------------------------------------------------------
+
+          global $wpdb;
+
+          // TODO write this function :-)
+
+          return("This isn't done yet!");
+      }
   }
 
   $starcall_rest = new starcall_rest();
@@ -511,9 +615,9 @@
 
   register_activation_hook( __FILE__, 'starcall_custom_roles' );
 
-  //------------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
   // Enqueue scripts
-  //------------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
 
   function starcall_enqueue_scripts () {
 
@@ -525,6 +629,10 @@
                           plugins_url('js/request.js', __FILE__),
                           array('jquery','wp-api'),'1.0', true);
 
+      wp_register_script('submit_request',
+                          plugins_url('js/submitrequest.js', __FILE__),
+                          array('jquery','wp-api'),'1.0', true);
+
       // We only want the request script on the corresponding page
       if (is_page("request")) {
           wp_enqueue_script('request_page');
@@ -533,8 +641,10 @@
       if (is_page("requests")) {
           wp_enqueue_script('starcall_browser');
       }
-
-
+      // Submit request page
+      if (is_page("submit")) {
+          wp_enqueue_script('submit_request');
+      }
   }
 
   add_action( 'wp_enqueue_scripts', 'starcall_enqueue_scripts' );

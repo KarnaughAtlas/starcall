@@ -1,3 +1,9 @@
+//------------------------------------------------------------------------------
+// File name: browser.js
+// Description: Collection of scripts used when displaying the request browser
+// Author: JSHayford
+// Version: 1.0
+//------------------------------------------------------------------------------
 
 //Number of requests per page
 var requests_per_page = 20;
@@ -38,6 +44,10 @@ function getRequests (filter) {
 
    return jQuery.ajax( {
      url: endpoint,
+     method: 'GET',
+     beforeSend: function ( xhr ) {
+         xhr.setRequestHeader( 'X-WP-Nonce', wpApiSettings.nonce );
+     },
      success: function ( response ) {
            requests = response;
            total_pages = Math.ceil(response.length / requests_per_page);
@@ -91,7 +101,7 @@ function makePage (page) {
             var url = 'https://starcall.sylessae.com/request/?request_id=' +
                                           jQuery('td.request_id', this).text();
 
-            window.open(url,"_self")
+            window.open(url);
         });
     }
 
