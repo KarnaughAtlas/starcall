@@ -30,29 +30,28 @@ function Comment(id,requestId,authorId,replyId,text,createDate,editDate,
 }
 
 function getCommentsByRequestId (id) {
+    if (id) {
+        var endpoint = '/wp-json/starcall/v1/comments/' + '?request_id=' + id;
 
-   if (id) {
-       var endpoint = '/wp-json/starcall/v1/comments/' + '?request_id=' + id;
-
-       return jQuery.ajax( {
-         url: endpoint,
-         method: 'GET',
-         beforeSend: function ( xhr ) {
-             xhr.setRequestHeader( 'X-WP-Nonce', wpApiSettings.nonce );
-         },
-         success: function ( response ) {
-             // Do we really need to do anything here?
-          },
-         failure: function ( response, err ) {
-             console.log("Ajax failure");
-             console.log(err);
-         },
-         cache: false,
-         dataType: 'json'
-       } );
+        return jQuery.ajax( {
+        url: endpoint,
+        method: 'GET',
+        beforeSend: function ( xhr ) {
+         xhr.setRequestHeader( 'X-WP-Nonce', wpApiSettings.nonce );
+        },
+        success: function ( response ) {
+         return(response.JSON);
+        },
+        failure: function ( response, err ) {
+         console.log("Ajax failure");
+         console.log(err);
+        },
+        cache: false,
+        dataType: 'json'
+        } );
    } else {
        // We didn't get an ID
-       return false;
+       return (false);
    }
 }
 
@@ -66,7 +65,7 @@ function postCommentAjax(comment) {
           xhr.setRequestHeader( 'X-WP-Nonce', wpApiSettings.nonce );
       },
       complete: function ( response ) {
-          return(response;)
+          return(response);
        },
       failure: function ( response, err ) {
           alert ("Error posting comment");

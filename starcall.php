@@ -1,305 +1,583 @@
-  <?php
-  /**
-   * Plugin Name: Starcall site-specific plugin
-   * Plugin URI: https://github.com/iamsayed/read-me-later
-   * Description: This plugin includes features unique to starcall.sylessae.com and is not intended for use anywhere else.
-   * Version: 1.0.0
-   * Author: Josh Hayford (KarnaughAtlas)
-   * License: GPL3
-   */
+      <?php
+      /**
+       * Plugin Name: Starcall site-specific plugin
+       * Plugin URI: https://github.com/iamsayed/read-me-later
+       * Description: This plugin includes features unique to starcall.sylessae.com and is not intended for use anywhere else.
+       * Version: 1.0.0
+       * Author: Josh Hayford (KarnaughAtlas)
+       * License: GPL3
+       */
 
 
-   //-----------------------------------------------------
-   // REST API server for async database requests
-   // 	See callback functions for usage
-   //-----------------------------------------------------
+       //-----------------------------------------------------
+       // REST API server for async database requests
+       // 	See callback functions for usage
+       //-----------------------------------------------------
 
-  class starcall_rest extends WP_REST_Controller {
+        class starcall_rest extends WP_REST_Controller {
 
-      //The namespace and version for the REST server
-      var $my_namespace = 'starcall/v';
-      var $my_version   = '1';
+          //The namespace and version for the REST server
+          var $my_namespace = 'starcall/v';
+          var $my_version   = '1';
 
-      public function register_routes() {
-          $namespace = $this->my_namespace . $this->my_version;
+          public function register_routes() {
+              $namespace = $this->my_namespace . $this->my_version;
 
-          // Register request routes
+              // Register request routes
 
-          register_rest_route( $namespace, '/requests', array(
-              array(
-                  'methods'         => WP_REST_Server::READABLE,
-                  'callback'        => array( $this, 'get_requests' ) ),
+              register_rest_route( $namespace, '/requests', array(
+                  array(
+                      'methods'         => WP_REST_Server::READABLE,
+                      'callback'        => array( $this, 'get_requests' ) ),
 
-              array(
-                  'methods'         => WP_REST_Server::EDITABLE,
-                  'callback'        => array( $this, 'post_request' ) ),
+                  array(
+                      'methods'         => WP_REST_Server::EDITABLE,
+                      'callback'        => array( $this, 'post_request' ) ),
 
-              array(
-                  'methods'         => WP_REST_Server::DELETABLE,
-                  'callback'        => array( $this, 'delete_request' ) ),
-          ) );
+                  array(
+                      'methods'         => WP_REST_Server::DELETABLE,
+                      'callback'        => array( $this, 'delete_request' ) ),
+              ) );
 
-          // Register comment routes
+              // Register comment routes
 
-          register_rest_route( $namespace, '/comments', array(
-              array(
-                  'methods'         => WP_REST_Server::READABLE,
-                  'callback'        => array( $this, 'get_comments' ) ),
+              register_rest_route( $namespace, '/comments', array(
+                  array(
+                      'methods'         => WP_REST_Server::READABLE,
+                      'callback'        => array( $this, 'get_comments' ) ),
 
-              array(
-                  'methods'         => WP_REST_Server::EDITABLE,
-                  'callback'        => array( $this, 'post_comment' ) ),
+                  array(
+                      'methods'         => WP_REST_Server::EDITABLE,
+                      'callback'        => array( $this, 'post_comment' ) ),
 
-              array(
-                  'methods'         => WP_REST_Server::DELETABLE,
-                  'callback'        => array( $this, 'delete_comment' ) ),
-          ) );
-
-
-  			//TODO register gift routes
-      }
-
-    // Register our REST Server
-      public function hook_rest_server(){
-          add_action( 'rest_api_init', array( $this, 'register_routes' ) );
-      }
-
-      public function get_requests( WP_REST_Request $request ){
-
-      //------------------------------------------------------------------------
-      // Function: get_requests
-      //
-      // This function gets requests (no waaaaay). If called with no parameters
-      // it returns all SFW requests with a status = 'approved' and nsfw = 0.
-      // Otherwise, you can give it parms in the URL and it'll filter requests.
-      // If given a request_id it will ignore all other parms and return the
-      // request with that ID.
-      //
-      // URL: https://starcall.sylessae.com/wp-json/starcall/v1/requests/
-      // Method: GET
-      // Returns: Requests JSON object
-      // Parms: id (int): request ID. If given this parameter, the function will
-      // return a single matching request.
-      // NOTE: If you give get_requests an ID it will ignore all other parms!
-      //
-      //        fan_art (yes | no ):
-      //        	yes = only fan art
-      //          no = only original
-      //          anything else (or blank) is both
-      //
-      //        desc (text): text filter for description
-      //
-      //        nsfw (yes | no | both):
-      //        	yes = include NSFW only
-      //          both: include everything
-      //			no (or anything else) (default) =  omit NSFW results
-      //
-      //		  status (submitted | approved | pending | trash ):
-      //		  	submitted: returns requests awaiting approval
-      //          approved (default):  requests visible to public
-      //------------------------------------------------------------------------------------------------------------------
-
-          global $wpdb;
-          $sql = 'SELECT request_id,title,user_id,user_login,nsfw,fan_art,
-                         reference_links, description, create_date, edit_date,
-                         status
-                  FROM wpsc_rq_requests
-                  JOIN wp_users ON wpsc_rq_requests.user_id = wp_users.ID';
-          $requests = new \stdClass();
-
-          // Determine if we need to add WHERE clauses to our query
-  		$params = $request->get_params();
-
-  		if (isset($params['request_id'])) { // fetching a specific request, not user-selectable. Ignore other parms.
-      		$filters[] =  'request_id = ' . $params['request_id'];
-
-  		} elseif ($params) { // we have filters
-
-  			// $filters is an array we'll use to build the dynamic WHERE/AND clause. Make sure we don't have junk
-  			unset($filters);
-
-  			//-------------------------------------------------------------------------
-  			// Fan art flag --
-  			//	yes = fan art only
-  			// 	no = original characters only
-  			//	all = include all (default behavior)
-  			//-------------------------------------------------------------------------
-
-  			if (isset($params['fan_art'])) {
-
-  				if($params['fan_art'] == "yes") { // Fan art characters only
-  					$filters[] =  'fan_art = 1';
-
-  				} elseif ($params['fan_art'] == "no") { // Original characters only
-  					$filters[] =  'fan_art = 0';
-
-  				} else { // Anything else, send them everything - I.E. do nothing
-
-  				}
-  			}
-
-  			//-------------------------------------------------------------------------
-  			// Description filter --
-  			//	Text-based filter
-  			//-------------------------------------------------------------------------
-
-  			if (isset($params['desc'])) {
-
-  				$filters[] =  'description LIKE "%' . trim($params['desc']) . '%"';
-  			}
-
-  			//-------------------------------------------------
-  			// NSFW flag --
-  			// 	yes = include NSFW and non-NSFW results
-  			//	only = only show NSFW results
-  			//	no = omit NSFW (default behavior)
-  			//-------------------------------------------------
-
-  			if (isset($params['nsfw'])) {
+                  array(
+                      'methods'         => WP_REST_Server::DELETABLE,
+                      'callback'        => array( $this, 'delete_comment' ) ),
+              ) );
 
 
-                  if ($params['nsfw'] == 'yes') {
-                     // Include NSFW and regular results, so don't add anything to the query
+      			//TODO register gift routes
+          }
 
-                  } elseif ($params['nsfw'] == "only") {
-                      // Include only NSFW results
-                      $filters[] =  'nsfw = 1';
+        // Register our REST Server
+          public function hook_rest_server(){
+              add_action( 'rest_api_init', array( $this, 'register_routes' ) );
+          }
 
-                  } else {
-                      // Default is omit NSFW results
-                      $filters[] =  'nsfw = 0';
+          public function get_requests( WP_REST_Request $request ){
+
+          //------------------------------------------------------------------------
+          // Function: get_requests
+          //
+          // This function gets requests (no waaaaay). If called with no parameters
+          // it returns all SFW requests with a status = 'approved' and nsfw = 0.
+          // Otherwise, you can give it parms in the URL and it'll filter requests.
+          // If given a request_id it will ignore all other parms and return the
+          // request with that ID.
+          //
+          // URL: https://starcall.sylessae.com/wp-json/starcall/v1/requests/
+          // Method: GET
+          // Returns: Requests JSON object
+          // Parms: id (int): request ID. If given this parameter, the function will
+          // return a single matching request.
+          // NOTE: If you give get_requests an ID it will ignore all other parms!
+          //
+          //        fan_art (yes | no ):
+          //        	yes = only fan art
+          //          no = only original
+          //          anything else (or blank) is both
+          //
+          //        desc (text): text filter for description
+          //
+          //        nsfw (yes | no | both):
+          //        	yes = include NSFW only
+          //          both: include everything
+          //			no (or anything else) (default) =  omit NSFW results
+          //
+          //		  status (submitted | approved | pending | trash ):
+          //		  	submitted: returns requests awaiting approval
+          //          approved (default):  requests visible to public
+          //------------------------------------------------------------------------------------------------------------------
+
+              global $wpdb;
+              $sql = 'SELECT request_id,title,user_id,user_login,nsfw,fan_art,
+                             reference_links, description, create_date, edit_date,
+                             status
+                      FROM wpsc_rq_requests
+                      JOIN wp_users ON wpsc_rq_requests.user_id = wp_users.ID';
+              $requests = new \stdClass();
+
+              // Determine if we need to add WHERE clauses to our query
+      		$params = $request->get_params();
+
+      		if (isset($params['request_id'])) { // fetching a specific request, not user-selectable. Ignore other parms.
+          		$filters[] =  'request_id = ' . $params['request_id'];
+
+      		} elseif ($params) { // we have filters
+
+      			// $filters is an array we'll use to build the dynamic WHERE/AND clause. Make sure we don't have junk
+      			unset($filters);
+
+      			//-------------------------------------------------------------------------
+      			// Fan art flag --
+      			//	yes = fan art only
+      			// 	no = original characters only
+      			//	all = include all (default behavior)
+      			//-------------------------------------------------------------------------
+
+      			if (isset($params['fan_art'])) {
+
+      				if($params['fan_art'] == "yes") { // Fan art characters only
+      					$filters[] =  'fan_art = 1';
+
+      				} elseif ($params['fan_art'] == "no") { // Original characters only
+      					$filters[] =  'fan_art = 0';
+
+      				} else { // Anything else, send them everything - I.E. do nothing
+
+      				}
+      			}
+
+      			//-------------------------------------------------------------------------
+      			// Description filter --
+      			//	Text-based filter
+      			//-------------------------------------------------------------------------
+
+      			if (isset($params['desc'])) {
+
+      				$filters[] =  'description LIKE "%' . trim($params['desc']) . '%"';
+      			}
+
+      			//-------------------------------------------------
+      			// NSFW flag --
+      			// 	yes = include NSFW and non-NSFW results
+      			//	only = only show NSFW results
+      			//	no = omit NSFW (default behavior)
+      			//-------------------------------------------------
+
+      			if (isset($params['nsfw'])) {
+
+
+                      if ($params['nsfw'] == 'yes') {
+                         // Include NSFW and regular results, so don't add anything to the query
+
+                      } elseif ($params['nsfw'] == "only") {
+                          // Include only NSFW results
+                          $filters[] =  'nsfw = 1';
+
+                      } else {
+                          // Default is omit NSFW results
+                          $filters[] =  'nsfw = 0';
+                      }
+      			}
+
+      			//-------------------------------------------------------------------------
+      			// Status flag --
+      			//	submitted: submitted but awaiting moderator approval (mod only)
+      			//	  pending: awaiting changes before approval (mod only)
+      			//	 approved: visible to public (default behavior)
+      			//	  deleted: in the trash (mod only)
+      			//        all: show all (mod only)
+      			//-------------------------------------------------------------------------
+
+      			// TODO: Only allow moderators and above to filter on status, otherwise user will only see approved requests
+
+                  if(isset($params['status'])) {
+                      if ($params['status'] == 'submitted') {
+
+                          $filters[] =  "status = 'submitted'";
+
+                      } elseif ($params['status'] == 'deleted') {
+
+                          $filters[] =  "status = 'deleted'";
+
+                      } elseif ($params['status'] == 'pending') {
+
+                          $filters[] =  "status = 'pending'";
+
+                      } elseif ($params['status'] == 'all') {
+                           // Include all so don't add anything
+
+                      } else {
+                           // Default is include only 'approved' requests
+                          $filters[] =  "status = 'approved'";
+
+                      }
                   }
-  			}
 
-  			//-------------------------------------------------------------------------
-  			// Status flag --
-  			//	submitted: submitted but awaiting moderator approval (mod only)
-  			//	  pending: awaiting changes before approval (mod only)
-  			//	 approved: visible to public (default behavior)
-  			//	  deleted: in the trash (mod only)
-  			//        all: show all (mod only)
-  			//-------------------------------------------------------------------------
+      			//TODO allow filtering on artist, submitter <- search by name?
+      			//TODO include date filters?
 
-  			// TODO: Only allow moderators and above to filter on status, otherwise user will only see approved requests
+      		} else {
+      			// No params, but by default we still need to filter out NSFW results and include only approved requests
+      			$sql .=  " WHERE nsfw = 0 AND status = 'approved'";
+      		}
 
-              if(isset($params['status'])) {
-                  if ($params['status'] == 'submitted') {
+              if (isset($filters)) {
+                  $sql .= ' WHERE ' . implode(' AND ', $filters);
+              }
 
-                      $filters[] =  "status = 'submitted'";
+              //Add the SQL order bys here
+              $sql .= " ORDER BY RAND()";
 
-                  } elseif ($params['status'] == 'deleted') {
+      		$requests = $wpdb->get_results($sql);
 
-                      $filters[] =  "status = 'deleted'";
+            // Now we need to figure out if the user has auth rights to modify the requests
 
-                  } elseif ($params['status'] == 'pending') {
+            $userIsAdmin = (current_user_can('administrator') || current_user_can('moderator'));
+            $currentUser = get_current_user_id();
 
-                      $filters[] =  "status = 'pending'";
+            foreach ($requests as $request) {
+                if ($userIsAdmin){
+                    // Admins and moderators can modify any request
+                    $request->user_authorized = true;
+                } elseif ($currentUser == $request->user_id) {
+                    // Users can modify their own requests
+                    $request->user_authorized = true;
+                } else {
+                    // No touchy
+                    $request->user_authorized = false;
+                }
+            }
 
-                  } elseif ($params['status'] == 'all') {
-                       // Include all so don't add anything
+      		return($requests);
+      	}
+
+          public function post_request (WP_REST_Request $request) {
+
+          //---------------------------------------------------------------------
+          // Function: post_request
+          //
+          // This is the create/update function for requests. This function
+          // consumes a JSON object in the body of the request.
+
+          // !!NOTE!!
+
+          // Be careful!
+
+          // If post_requests is given an id parm it assumes we're modifying an
+          // existing request. You can not create a request with a specific ID,
+          // it is always generated by the database. If the ID passed in the
+          // JSON does not exist, post_requests returns false. A successful
+          // update will return true, otherwise false.
+
+          // !!NOTE!!
+
+          //
+          // If post_requests is not given an ID it assumes we're creating a new
+          // one. Success will return true, failure false.
+          //
+          // Any logged in user may create requests. Only moderators and the
+          // owner of the request in question may modify.
+          //
+          // URL: https://starcall.sylessae.com/wp-json/starcall/v1/requests/
+          // Method: POST
+          // Returns: JSON with various things in it
+          // Parms: JSON object
+          //---------------------------------------------------------------------
+
+              global $wpdb;
+              $response = new \stdClass();
+
+              // Get our JSON from the HTTP request body
+              $requestToUpdate = json_decode($request -> get_body());
+
+              if($requestToUpdate !== null) {
+                  // Successfully got the post body
+                if (isset($requestToUpdate->request_id)) {
+                    // We're updating an existing request
+                    // First, let's get the request we're changing
+                    $sql = "SELECT * FROM wpsc_rq_requests " .
+                           "WHERE request_id = " . $requestToUpdate->request_id;
+
+                    $existingRequest = $wpdb->get_row($sql);
+
+                    if ($existingRequest) {
+                        // Found it. Make sure the user is allowed to do this
+                        // Must be mod, admin, or the owner of the request
+                        $currentUser = get_current_user_id();
+
+                        if (current_user_can('moderator') ||
+                            current_user_can('administrator') ||
+                            $currentUser == $existingRequest->user_id) {
+                            // Do the update
+
+                            // We're using the wpdb object for database access,
+                            // so we need to build a few arrays for it.
+
+                            // Set the table we're going to update
+
+                            $table = 'wpsc_rq_requests';
+
+                            // Build data array for fields to update
+
+                            $data = array(
+                                'title' => $requestToUpdate->title,
+                              'user_id' => $requestToUpdate->user_id,
+                                 'nsfw' => $requestToUpdate->nsfw,
+                              'fan_art' => $requestToUpdate->fan_art,
+                      'reference_links' => $requestToUpdate->reference_links,
+                          'description' => $requestToUpdate->description,
+                               'status' => $requestToUpdate->status,
+                            'edit_user' => $currentUser
+                           );
+
+                           // Build the where array
+                           $where = array('request_id' => $requestToUpdate->request_id);
+
+                           // Now we can do the update. Success should have the total
+                           // rows affected.
+                           $success = $wpdb->update( $table, $data, $where);
+
+                           if ($success) {
+                               // We did it, guys
+                               $response->success = true;
+                               $response->rows_updaded = $success;
+
+                           } else {
+                               // Update failed
+                               write_log("ERROR: wpdb->update barfed.");
+                               write_log("Request ID: " . $requestToUpdate->request_id);
+                               write_log($data);
+
+                               $response->success = false;
+                               $response->errmsg = 'Error updating request';
+                           }
+
+                        } else {
+                            // User is not authorized, send error
+                            $response->success = false;
+                            $response->errmsg = 'User is not authorized';
+                        }
+
+                    } else {
+                        // Didn't find the request, send error
+                        $response->success = false;
+                        $response->errmsg = 'Request with ID ' . $requestToUpdate->request_id . ' not found';
+                    }
+                } else {
+                    // We're submitting a new request. Do we have a valid user?
+                    if (current_user_can('read')) {
+                        // Insert request
+                        // We're using the wpdb object for database access,
+                        // so we need to build a few arrays for it.
+
+                        // Set the table
+                        $table = 'wpsc_rq_requests';
+                        $requestStatus = 'submitted';
+
+                        $currentUser = get_current_user_id();
+
+                        // Build data array for fields to insert
+                        $data = array(
+                            'title' => $requestToUpdate->title,
+                          'user_id' => $currentUser,
+                             'nsfw' => $requestToUpdate->nsfw,
+                          'fan_art' => $requestToUpdate->fan_art,
+                     'social_media' => $requestToUpdate->social_media,
+                  'reference_links' => $requestToUpdate->reference_links,
+                      'description' => $requestToUpdate->description,
+                         'how_hear' => $requestToUpdate->how_hear,
+                           'status' => $requestStatus
+                       );
+
+
+                        // Now we can do the insert. Success here will have the
+                        // total number of rows affected, which hopefully will be 1
+                        $success = $wpdb->insert( $table, $data);
+
+                        if($success) {
+                            // Insert successful!
+                            $response->success = true;
+                            $response->new_id = $wpdb->insert_id;
+
+                        } else {
+                            // Error inserting
+                            $response->success = false;
+                            $response->errmsg = 'Error occurred during insert';
+                        }
+
+                    } else {
+                        // User is not valid or not logged in
+                        $response->success = false;
+                        $response->errmsg = 'Invalid user - are you logged in?';
+                    }
+                }
+              } else {
+                // We didn't get the post body
+                $response->success = false;
+                $response->errmsg = "Failed to get post body";
+              }
+
+              return($response);
+          }
+
+          public function delete_request (WP_REST_Request $request) {
+
+              //--------------------------------------------------------------------
+              // Function: delete_request
+              //
+              // This function deletes reques. It takes only one parm, the ID
+              // of the request to delete. Note - only moderators and administrators
+              // can actually delete requests. Request owners can only set the status
+              // to 'trash' which is done via post_request.
+              //
+              // URL: https://starcall.sylessae.com/wp-json/starcall/v1/requests/
+              // Method: DELETE
+              // Returns: JSON with true/false and an error if applicable
+              // Parms: ID
+              //--------------------------------------------------------------------
+
+
+              global $wpdb;
+              $response = new \stdClass();
+
+              $params = $request->get_params();
+
+              if (isset($params['request_id'])) {
+
+                  if (current_user_can('administrator') || current_user_can('moderator')) {
+                      // User is authorized
+                      $deletedRows = $wpdb->delete( 'wpsc_rq_requests', array( 'request_id' => $parms['request_id'] ) );
+                      if ($deletedRows != 1) {
+                          // We should only have affected one row
+                          $response->success = true;
+                      } else {
+                          // Something went wrong
+                          write_log('Attempting to delete ID: ' . $parms['request_id']);
+                          write_log('Error occurred, affected '.$deletedRows.' rows');
+                          $response->success = false;
+                          $response->errmsg = 'Error occurred during delete - see debug.log';
+                      }
 
                   } else {
-                       // Default is include only 'approved' requests
-                      $filters[] =  "status = 'approved'";
+                      //user is not authorized
+                      $response->success = false;
+                      $response->errmsg = 'User is not authorized';
+                  }
 
+              } else {
+                  // No ID, send an error
+                  $response->success = false;
+                  $response->errmsg = 'No ID passed for delete';
+              }
+
+              return($response);
+          }
+
+          public function get_comments (WP_REST_Request $request) {
+          //------------------------------------------------------------------------
+          // Function: get_comments
+          //
+          // This request gets comments. Initial support only for retrieving by
+          /// user ID and request ID.
+          //
+          // URL: https://starcall.sylessae.com/wp-json/starcall/v1/comments/
+          // Method: GET
+          // Returns: JSON
+          // Parms: URL parms - user_id or request_id
+          //------------------------------------------------------------------------
+
+              // Globals
+              global $wpdb;
+
+              // Objects
+              $comments = new \stdClass();
+              $userIsAdmin = (current_user_can('administrator') || current_user_can('moderator'));
+              $currentUser = get_current_user_id();
+
+              // Initialize SQL query
+              $sql = 'SELECT comment_id,request_id,author_id, u1.user_login AS author,
+                             reply_id,comment_text, create_date, edit_user,
+                             u2.user_login AS editing_user, edit_date, comment_status
+                      FROM wpsc_rq_comments AS comments
+                      JOIN wp_users AS u1 ON comments.author_id = u1.ID
+                      LEFT JOIN wp_users AS u2 ON comments.edit_user = u2.ID';
+
+              // Get parms out of the url
+              $params = $request->get_params();
+
+              if($params) {
+                  // Build the WHERE clause
+                  if(isset($params['author_id'])) {
+                      $filters[] = 'author_id = ' . $params['user_id'];
+                  }
+
+                  if(isset($params['request_id'])) {
+                      $filters[] = 'request_id = ' . $params['request_id'];
                   }
               }
 
-  			//TODO allow filtering on artist, submitter <- search by name?
-  			//TODO include date filters?
+              if(sizeof($filters) == 0) { // Check here cause we might have bogus parms
+                  // No filters supplied by user
+                  if (!$userIsAdmin) {
+                        // User is a filthy peasant, they may not see the glory of
+                        // unapproved comments
+                        $filters[] = 'status = "approved"';
+                  }
+              }
 
-  		} else {
-  			// No params, but by default we still need to filter out NSFW results and include only approved requests
-  			$sql .=  " WHERE nsfw = 0 AND status = 'approved'";
-  		}
+              // IMPLOSION
+              if (isset($filters)) {
+                  $sql .= ' WHERE ' . implode(' AND ', $filters);
+              }
 
-          if (isset($filters)) {
-              $sql .= ' WHERE ' . implode(' AND ', $filters);
+              // Query the database and return the response
+              write_log($sql);
+              $comments = $wpdb->get_results($sql);
+
+              foreach ($comments as $comment) {
+                  if ($userIsAdmin){
+                      // Admins and moderators can modify any request
+                      $comment->user_authorized = true;
+                  } elseif ($currentUser == $comment->author_id) {
+                      // Users can modify their own requests
+                      $comment->user_authorized = true;
+                  } else {
+                      // No touchy
+                      $comment->user_authorized = false;
+                  }
+              }
+        		return($comments);
           }
 
-          //Add the SQL order bys here
-          $sql .= " ORDER BY RAND()";
-
-  		$requests = $wpdb->get_results($sql);
-
-        // Now we need to figure out if the user has auth rights to modify the requests
-
-        $userIsAdmin = (current_user_can('administrator') || current_user_can('moderator'));
-        $currentUser = get_current_user_id();
-
-        foreach ($requests as $request) {
-            if ($userIsAdmin){
-                // Admins and moderators can modify any request
-                $request->user_authorized = true;
-            } elseif ($currentUser == $request->user_id) {
-                // Users can modify their own requests
-                $request->user_authorized = true;
-            } else {
-                // No touchy
-                $request->user_authorized = false;
-            }
-        }
-
-  		return($requests);
-  	}
-
-      public function post_request (WP_REST_Request $request) {
-
-      //---------------------------------------------------------------------
-      // Function: post_request
-      //
-      // This is the create/update function for requests. This function
-      // consumes a JSON object in the body of the request.
-
-      // !!NOTE!!
-
-      // Be careful!
-
-      // If post_requests is given an id parm it assumes we're modifying an
-      // existing request. You can not create a request with a specific ID,
-      // it is always generated by the database. If the ID passed in the
-      // JSON does not exist, post_requests returns false. A successful
-      // update will return true, otherwise false.
-
-      // !!NOTE!!
-
-      //
-      // If post_requests is not given an ID it assumes we're creating a new
-      // one. Success will return true, failure false.
-      //
-      // Any logged in user may create requests. Only moderators and the
-      // owner of the request in question may modify.
-      //
-      // URL: https://starcall.sylessae.com/wp-json/starcall/v1/requests/
-      // Method: POST
-      // Returns: JSON with various things in it
-      // Parms: JSON object
-      //---------------------------------------------------------------------
+          public function post_comment (WP_REST_Request $request) {
+          //------------------------------------------------------------------------
+          // Function: post_comment
+          //
+          // TODO add description and other stuff here
+          //
+          // URL: https://starcall.sylessae.com/wp-json/starcall/v1/comments/
+          // Method: POST
+          // Returns: JSON
+          // Parms: JSON
+          //------------------------------------------------------------------------
 
           global $wpdb;
+
           $response = new \stdClass();
 
-          // Get our JSON from the HTTP request body
-          $requestToUpdate = json_decode($request -> get_body());
+          // Get our JSON from the HTTP comment body
+          $commentToUpdate = json_decode($request -> get_body());
 
-          if($requestToUpdate !== null) {
+          if($commentToUpdate !== null) {
               // Successfully got the post body
-            if (isset($requestToUpdate->request_id)) {
-                // We're updating an existing request
-                // First, let's get the request we're changing
-                $sql = "SELECT * FROM wpsc_rq_requests " .
-                       "WHERE request_id = " . $requestToUpdate->request_id;
+            if (isset($commentToUpdate->comment_id)) {
+                // We're updating an existing comment
+                // First, let's get the comment we're changing
+                $sql = "SELECT * FROM wpsc_rq_comments " .
+                       "WHERE comment_id = " . $commentToUpdate->comment_id;
 
-                $existingRequest = $wpdb->get_row($sql);
+                $existingComment = $wpdb->get_row($sql);
 
-                if ($existingRequest) {
+                if ($existingComment) {
                     // Found it. Make sure the user is allowed to do this
-                    // Must be mod, admin, or the owner of the request
+                    // Must be mod, admin, or the owner of the comment
                     $currentUser = get_current_user_id();
 
                     if (current_user_can('moderator') ||
                         current_user_can('administrator') ||
-                        $currentUser == $existingRequest->user_id) {
+                        $currentUser == $existingComment->author_id) {
                         // Do the update
 
                         // We're using the wpdb object for database access,
@@ -307,23 +585,21 @@
 
                         // Set the table we're going to update
 
-                        $table = 'wpsc_rq_requests';
+                        $table = 'wpsc_rq_comments';
 
                         // Build data array for fields to update
 
                         $data = array(
-                            'title' => $requestToUpdate->title,
-                          'user_id' => $requestToUpdate->user_id,
-                             'nsfw' => $requestToUpdate->nsfw,
-                          'fan_art' => $requestToUpdate->fan_art,
-                  'reference_links' => $requestToUpdate->reference_links,
-                      'description' => $requestToUpdate->description,
-                           'status' => $requestToUpdate->status,
-                        'edit_user' => $currentUser
+                          'request_id' => $commentToUpdate->request_id,
+                           'author_id' => $commentToUpdate->author_id,
+                            'reply_id' => $commentToUpdate->reply_id,
+                        'comment_text' => $commentToUpdate->comment_text,
+                              'status' => $commentToUpdate->status,
+                           'edit_user' => $currentUser
                        );
 
                        // Build the where array
-                       $where = array('request_id' => $requestToUpdate->request_id);
+                       $where = array('comment_id' => $commentToUpdate->comment_id);
 
                        // Now we can do the update. Success should have the total
                        // rows affected.
@@ -337,11 +613,11 @@
                        } else {
                            // Update failed
                            write_log("ERROR: wpdb->update barfed.");
-                           write_log("Request ID: " . $requestToUpdate->request_id);
+                           write_log("Comment ID: " . $commentToUpdate->comment_id);
                            write_log($data);
 
                            $response->success = false;
-                           $response->errmsg = 'Error updating request';
+                           $response->errmsg = 'Error updating comment';
                        }
 
                     } else {
@@ -351,36 +627,36 @@
                     }
 
                 } else {
-                    // Didn't find the request, send error
+                    // Didn't find the comment, send error
                     $response->success = false;
-                    $response->errmsg = 'Request with ID ' . $requestToUpdate->request_id . ' not found';
+                    $response->errmsg = 'Comment with ID ' . $commentToUpdate->comment_id . ' not found';
                 }
             } else {
-                // We're submitting a new request. Do we have a valid user?
+                // We're submitting a new comment. Do we have a valid user?
                 if (current_user_can('read')) {
-                    // Insert request
+                    // Insert comment
                     // We're using the wpdb object for database access,
                     // so we need to build a few arrays for it.
 
                     // Set the table
-                    $table = 'wpsc_rq_requests';
-                    $requestStatus = 'submitted';
+                    $table = 'wpsc_rq_comments';
+                    $commentStatus = 'approved';
 
                     $currentUser = get_current_user_id();
+                    if (isset($commentToUpdate->reply_id)) {
+                        $replyID = $commentToUpdate->reply_id;
+                    } else {
+                        $replyID = 0;
+                    }
 
                     // Build data array for fields to insert
                     $data = array(
-                        'title' => $requestToUpdate->title,
-                      'user_id' => $currentUser,
-                         'nsfw' => $requestToUpdate->nsfw,
-                      'fan_art' => $requestToUpdate->fan_art,
-                 'social_media' => $requestToUpdate->social_media,
-              'reference_links' => $requestToUpdate->reference_links,
-                  'description' => $requestToUpdate->description,
-                     'how_hear' => $requestToUpdate->how_hear,
-                       'status' => $requestStatus
+                        'request_id' => $commentToUpdate->request_id,
+                         'author_id' => $currentUser,
+                          'reply_id' => $replyID,
+                      'comment_text' => $commentToUpdate->comment_text,
+                    'comment_status' => $commentStatus,
                    );
-
 
                     // Now we can do the insert. Success here will have the
                     // total number of rows affected, which hopefully will be 1
@@ -412,22 +688,18 @@
           return($response);
       }
 
-      public function delete_request (WP_REST_Request $request) {
+          public function delete_comment (WP_REST_Request $request) {
 
-          //--------------------------------------------------------------------
-          // Function: delete_request
+          //------------------------------------------------------------------------
+          // Function: delete_comment
           //
-          // This function deletes reques. It takes only one parm, the ID
-          // of the request to delete. Note - only moderators and administrators
-          // can actually delete requests. Request owners can only set the status
-          // to 'trash' which is done via post_request.
+          // TODO add description and other stuff here
           //
-          // URL: https://starcall.sylessae.com/wp-json/starcall/v1/requests/
+          // URL: https://starcall.sylessae.com/wp-json/starcall/v1/comments/
           // Method: DELETE
-          // Returns: JSON with true/false and an error if applicable
-          // Parms: ID
-          //--------------------------------------------------------------------
-
+          // Returns: JSON
+          // Parms: JSON
+          //------------------------------------------------------------------------
 
           global $wpdb;
           $response = new \stdClass();
@@ -438,7 +710,7 @@
 
               if (current_user_can('administrator') || current_user_can('moderator')) {
                   // User is authorized
-                  $deletedRows = $wpdb->delete( 'wpsc_rq_requests', array( 'request_id' => $parms['request_id'] ) );
+                  $deletedRows = $wpdb->delete( 'wpsc_rq_comments', array( 'comment_id' => $parms['comment_id'] ) );
                   if ($deletedRows != 1) {
                       // We should only have affected one row
                       $response->success = true;
@@ -465,387 +737,128 @@
           return($response);
       }
 
-      public function get_comments (WP_REST_Request $request) {
-      //------------------------------------------------------------------------
-      // Function: get_comments
-      //
-      // This request gets comments. Initial support only for retrieving by
-      /// user ID and request ID.
-      //
-      // URL: https://starcall.sylessae.com/wp-json/starcall/v1/comments/
-      // Method: GET
-      // Returns: JSON
-      // Parms: URL parms - user_id or request_id
-      //------------------------------------------------------------------------
+          public function get_gifts (WP_REST_Request $request) {
 
-          // Globals - now that I think about this, I probably don't need to
-          // decalre $wpdb in every damn function
-          global $wpdb;
+          //------------------------------------------------------------------------
+          // Function: get_gifts
+          //
+          // TODO add description and other stuff here
+          //
+          // URL: https://starcall.sylessae.com/wp-json/starcall/v1/gifts/
+          // Method: GET
+          // Returns: JSON
+          // Parms: JSON
+          //------------------------------------------------------------------------
 
-          // Objects
-          $comments = new \stdClass();
-          $userIsAdmin = (current_user_can('administrator') || current_user_can('moderator'));
-          $currentUser = get_current_user_id();
+              global $wpdb;
 
-          // Initialize SQL query
-          $sql = 'SELECT comment_id,request_id,author_id, u1.user_login AS author,
-                         reply_id,comment_text, create_date, description,
-                         create_date, edit_user, u2.user_login AS editing_user,
-                         edit_date, status
-                  FROM wpsc_rq_requests AS comments
-                  JOIN wp_users AS u1 ON comments.user_id = u1.ID
-                  JOIN wp_users AS u2 ON comments.edit_user = u2.ID';
+              // TODO write this function :-)
 
-          // Get parms out of the url
-          $params = $request->get_params();
+              return("This isn't done yet!");
 
-          if($params) {
-              // Build the WHERE clause
-              if(isset($params['author_id'])) {
-                  $filters[] = 'author_id = ' + $params['user_id'];
-              }
-
-              if(isset($params['request_id'])) {
-                  $filters[] = 'request_id = ' + $params['request_id'];
-              }
           }
 
-          if($filters.length == 0) { // Check here cause we might have bogus parms
-              // No filters supplied by user
-              if (!$userIsAdmin) {
-                    // User is a filthy peasant, they may not see the glory of
-                    // unapproved comments
-                    $filters[] = 'status = "approved"';
-              }
+          public function post_gift (WP_REST_Request $request) {
+
+          //------------------------------------------------------------------------
+          // Function: post_gift
+          //
+          // TODO add description and other stuff here
+          //
+          // URL: https://starcall.sylessae.com/wp-json/starcall/v1/gifts/
+          // Method: POST
+          // Returns: JSON
+          // Parms: JSON
+          //------------------------------------------------------------------------
+
+              global $wpdb;
+
+              // TODO write this function :-)
+
+              return("This isn't done yet!");
+
           }
 
-          // IMPLOSION
-          if (isset($filters)) {
-              $sql .= ' WHERE ' . implode(' AND ', $filters);
+          public function delete_gift (WP_REST_Request $request) {
+
+          //------------------------------------------------------------------------
+          // Function: delete_gift
+          //
+          // TODO add description and other stuff here
+          //
+          // URL: https://starcall.sylessae.com/wp-json/starcall/v1/gifts/
+          // Method: DELETE
+          // Returns: JSON
+          // Parms: JSON
+          //------------------------------------------------------------------------
+
+              global $wpdb;
+
+              // TODO write this function :-)
+
+              return("This isn't done yet!");
           }
+      }
 
-          // Query the database and return the response
-          $comments = $wpdb->get_results($sql);
+      $starcall_rest = new starcall_rest();
+      $starcall_rest->hook_rest_server();
 
-          foreach ($comments as $comment) {
-              if ($userIsAdmin){
-                  // Admins and moderators can modify any request
-                  $comment->user_authorized = true;
-              } elseif ($currentUser == $comment->author_id) {
-                  // Users can modify their own requests
-                  $comment->user_authorized = true;
-              } else {
-                  // No touchy
-                  $comment->user_authorized = false;
-              }
+      //--------------------------------------------------------
+      // Custom roles for Starcall
+      //--------------------------------------------------------
+
+      function starcall_custom_roles () {
+
+      	add_role(
+      		'starcall_moderator',
+      		__( 'Moderator' ),
+      		array(
+      			'read' => true,
+      		)
+      	);
+      }
+
+      register_activation_hook( __FILE__, 'starcall_custom_roles' );
+
+      //----------------------------------------------------------------------------
+      // Enqueue scripts
+      //----------------------------------------------------------------------------
+
+      function starcall_enqueue_scripts () {
+
+          wp_register_script('starcall_browser',
+                              plugins_url('js/browser.js', __FILE__),
+                              array('jquery','wp-api'),'1.0', true);
+
+          wp_register_script('request_page',
+                              plugins_url('js/request.js', __FILE__),
+                              array('jquery','wp-api'),'1.0', true);
+
+          wp_register_script('submit_request',
+                              plugins_url('js/submitrequest.js', __FILE__),
+                              array('jquery','wp-api'),'1.0', true);
+
+          wp_register_script('starcall_comments',
+                              plugins_url('js/comments.js', __FILE__),
+                              array('jquery','wp-api'),'1.0', true);
+
+          //Enqueue common scripts for all pages
+          wp_enqueue_script('starcall_comments');
+
+          // We only want the request script on the corresponding page
+          if (is_page("request")) {
+              wp_enqueue_script('request_page');
           }
-    		return($comments);
-      }
-
-      public function post_comment (WP_REST_Request $request) {
-      //------------------------------------------------------------------------
-      // Function: post_comment
-      //
-      // TODO add description and other stuff here
-      //
-      // URL: https://starcall.sylessae.com/wp-json/starcall/v1/comments/
-      // Method: POST
-      // Returns: JSON
-      // Parms: JSON
-      //------------------------------------------------------------------------
-
-      $response = new \stdClass();
-
-      // Get our JSON from the HTTP comment body
-      $commentToUpdate = json_decode($request -> get_body());
-
-      if($commentToUpdate !== null) {
-          // Successfully got the post body
-        if (isset($commentToUpdate->comment_id)) {
-            // We're updating an existing comment
-            // First, let's get the comment we're changing
-            $sql = "SELECT * FROM wpsc_rq_comments " .
-                   "WHERE comment_id = " . $commentToUpdate->comment_id;
-
-            $existingComment = $wpdb->get_row($sql);
-
-            if ($existingComment) {
-                // Found it. Make sure the user is allowed to do this
-                // Must be mod, admin, or the owner of the comment
-                $currentUser = get_current_user_id();
-
-                if (current_user_can('moderator') ||
-                    current_user_can('administrator') ||
-                    $currentUser == $existingComment->author_id) {
-                    // Do the update
-
-                    // We're using the wpdb object for database access,
-                    // so we need to build a few arrays for it.
-
-                    // Set the table we're going to update
-
-                    $table = 'wpsc_rq_comments';
-
-                    // Build data array for fields to update
-
-                    $data = array(
-                      'request_id' => $commentToUpdate->request_id,
-                       'author_id' => $commentToUpdate->author_id,
-                        'reply_id' => $commentToUpdate->reply_id,
-                    'comment_text' => $commentToUpdate->comment_text,
-                          'status' => $commentToUpdate->status,
-                       'edit_user' => $currentUser
-                   );
-
-                   // Build the where array
-                   $where = array('comment_id' => $commentToUpdate->comment_id);
-
-                   // Now we can do the update. Success should have the total
-                   // rows affected.
-                   $success = $wpdb->update( $table, $data, $where);
-
-                   if ($success) {
-                       // We did it, guys
-                       $response->success = true;
-                       $response->rows_updaded = $success;
-
-                   } else {
-                       // Update failed
-                       write_log("ERROR: wpdb->update barfed.");
-                       write_log("Comment ID: " . $commentToUpdate->comment_id);
-                       write_log($data);
-
-                       $response->success = false;
-                       $response->errmsg = 'Error updating comment';
-                   }
-
-                } else {
-                    // User is not authorized, send error
-                    $response->success = false;
-                    $response->errmsg = 'User is not authorized';
-                }
-
-            } else {
-                // Didn't find the comment, send error
-                $response->success = false;
-                $response->errmsg = 'Comment with ID ' . $commentToUpdate->comment_id . ' not found';
-            }
-        } else {
-            // We're submitting a new comment. Do we have a valid user?
-            if (current_user_can('read')) {
-                // Insert comment
-                // We're using the wpdb object for database access,
-                // so we need to build a few arrays for it.
-
-                // Set the table
-                $table = 'wpsc_rq_comments';
-                $commentStatus = 'approved';
-
-                $currentUser = get_current_user_id();
-
-                // Build data array for fields to insert
-                $data = array(
-                    'request_id' => $commentToUpdate->request_id,
-                     'author_id' => $commentToUpdate->author_id,
-                      'reply_id' => $commentToUpdate->reply_id,
-                  'comment_text' => $commentToUpdate->comment_text,
-                        'status' => $commentStatus,
-               );
-
-                // Now we can do the insert. Success here will have the
-                // total number of rows affected, which hopefully will be 1
-                $success = $wpdb->insert( $table, $data);
-
-                if($success) {
-                    // Insert successful!
-                    $response->success = true;
-                    $response->new_id = $wpdb->insert_id;
-
-                } else {
-                    // Error inserting
-                    $response->success = false;
-                    $response->errmsg = 'Error occurred during insert';
-                }
-
-            } else {
-                // User is not valid or not logged in
-                $response->success = false;
-                $response->errmsg = 'Invalid user - are you logged in?';
-            }
-        }
-      } else {
-        // We didn't get the post body
-        $response->success = false;
-        $response->errmsg = "Failed to get post body";
-      }
-
-      return($response);
-  }
-
-      public function delete_comment (WP_REST_Request $request) {
-
-      //------------------------------------------------------------------------
-      // Function: delete_comment
-      //
-      // TODO add description and other stuff here
-      //
-      // URL: https://starcall.sylessae.com/wp-json/starcall/v1/comments/
-      // Method: DELETE
-      // Returns: JSON
-      // Parms: JSON
-      //------------------------------------------------------------------------
-
-      global $wpdb;
-      $response = new \stdClass();
-
-      $params = $request->get_params();
-
-      if (isset($params['request_id'])) {
-
-          if (current_user_can('administrator') || current_user_can('moderator')) {
-              // User is authorized
-              $deletedRows = $wpdb->delete( 'wpsc_rq_comments', array( 'comment_id' => $parms['comment_id'] ) );
-              if ($deletedRows != 1) {
-                  // We should only have affected one row
-                  $response->success = true;
-              } else {
-                  // Something went wrong
-                  write_log('Attempting to delete ID: ' . $parms['request_id']);
-                  write_log('Error occurred, affected '.$deletedRows.' rows');
-                  $response->success = false;
-                  $response->errmsg = 'Error occurred during delete - see debug.log';
-              }
-
-          } else {
-              //user is not authorized
-              $response->success = false;
-              $response->errmsg = 'User is not authorized';
+          // Search request page script
+          if (is_page("requests")) {
+              wp_enqueue_script('starcall_browser');
           }
-
-      } else {
-          // No ID, send an error
-          $response->success = false;
-          $response->errmsg = 'No ID passed for delete';
+          // Submit request page
+          if (is_page("submit")) {
+              wp_enqueue_script('submit_request');
+          }
       }
 
-      return($response);
-  }
+      add_action( 'wp_enqueue_scripts', 'starcall_enqueue_scripts' );
 
-      public function get_gifts (WP_REST_Request $request) {
-
-      //------------------------------------------------------------------------
-      // Function: get_gifts
-      //
-      // TODO add description and other stuff here
-      //
-      // URL: https://starcall.sylessae.com/wp-json/starcall/v1/gifts/
-      // Method: GET
-      // Returns: JSON
-      // Parms: JSON
-      //------------------------------------------------------------------------
-
-          global $wpdb;
-
-          // TODO write this function :-)
-
-          return("This isn't done yet!");
-
-      }
-
-      public function post_gift (WP_REST_Request $request) {
-
-      //------------------------------------------------------------------------
-      // Function: post_gift
-      //
-      // TODO add description and other stuff here
-      //
-      // URL: https://starcall.sylessae.com/wp-json/starcall/v1/gifts/
-      // Method: POST
-      // Returns: JSON
-      // Parms: JSON
-      //------------------------------------------------------------------------
-
-          global $wpdb;
-
-          // TODO write this function :-)
-
-          return("This isn't done yet!");
-
-      }
-
-      public function delete_gift (WP_REST_Request $request) {
-
-      //------------------------------------------------------------------------
-      // Function: delete_gift
-      //
-      // TODO add description and other stuff here
-      //
-      // URL: https://starcall.sylessae.com/wp-json/starcall/v1/gifts/
-      // Method: DELETE
-      // Returns: JSON
-      // Parms: JSON
-      //------------------------------------------------------------------------
-
-          global $wpdb;
-
-          // TODO write this function :-)
-
-          return("This isn't done yet!");
-      }
-  }
-
-  $starcall_rest = new starcall_rest();
-  $starcall_rest->hook_rest_server();
-
-  //--------------------------------------------------------
-  // Custom roles for Starcall
-  //--------------------------------------------------------
-
-  function starcall_custom_roles () {
-
-  	add_role(
-  		'starcall_moderator',
-  		__( 'Moderator' ),
-  		array(
-  			'read' => true,
-  		)
-  	);
-  }
-
-  register_activation_hook( __FILE__, 'starcall_custom_roles' );
-
-  //----------------------------------------------------------------------------
-  // Enqueue scripts
-  //----------------------------------------------------------------------------
-
-  function starcall_enqueue_scripts () {
-
-      wp_register_script('starcall_browser',
-                          plugins_url('js/browser.js', __FILE__),
-                          array('jquery','wp-api'),'1.0', true);
-
-      wp_register_script('request_page',
-                          plugins_url('js/request.js', __FILE__),
-                          array('jquery','wp-api'),'1.0', true);
-
-      wp_register_script('submit_request',
-                          plugins_url('js/submitrequest.js', __FILE__),
-                          array('jquery','wp-api'),'1.0', true);
-
-      // We only want the request script on the corresponding page
-      if (is_page("request")) {
-          wp_enqueue_script('request_page');
-      }
-      // Search request page script
-      if (is_page("requests")) {
-          wp_enqueue_script('starcall_browser');
-      }
-      // Submit request page
-      if (is_page("submit")) {
-          wp_enqueue_script('submit_request');
-      }
-  }
-
-  add_action( 'wp_enqueue_scripts', 'starcall_enqueue_scripts' );
-
-  ?>
+      ?>

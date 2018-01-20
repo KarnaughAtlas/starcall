@@ -8,8 +8,10 @@
 var thisRequest = new Object();
 
 jQuery( document ).ready(function() {
-    loadRequest();
-    loadComments();
+    jQuery.when(getRequest()).done(function(e) {
+        loadRequest();
+        loadComments();
+    });
 });
 
 function getRequest() {
@@ -37,39 +39,39 @@ function getRequest() {
 }
 
 function loadRequest () {
-    // Call the Ajax and try to access the object; if nada, display the error
-    jQuery.when(getRequest()).done(function(e) {
-        // After the AJAX is done, use try/except to figure out if we found the request
-        try {
-            // If we did, load it
-            document.title = thisRequest.title + ' by ' + thisRequest.user_login;
-            // Put stuff in the document. Do more with this later
+    try {
+        // If we did, load it
+        document.title = thisRequest.title + ' by ' + thisRequest.user_login;
+        // Put stuff in the document. Do more with this later
 
-            var markup = '<h1>'+ thisRequest.title + '</h1>';
+        var markup = '<h1>'+ thisRequest.title + '</h1>';
 
-            markup += '<strong>Requested by: ' + thisRequest.user_login + '</strong><br /><br />';
+        markup += '<strong>Requested by: ' + thisRequest.user_login + '</strong><br /><br />';
 
-            if  (thisRequest.user_authorized) {
-                markup += '<button class="editbutton"> Edit request </button><br /><br />';
-            }
-
-            markup += "<strong>Description</strong><br />" + thisRequest.description +
-                      "<br /><br />" +
-                      "<strong>References:</strong><br />" + thisRequest.reference_links;
-
-
-            jQuery("#requestarea").append(markup);
-            jQuery('.editbutton').click(function() {
-                editRequest();
-            });
-
-        } catch(err) {
-            // Otherwise display an error message and bounce
-            console.log(err);
-            requestNotFound();
-            return;
+        if  (thisRequest.user_authorized) {
+            markup += '<button class="editbutton"> Edit request </button><br /><br />';
         }
-    });
+
+        markup += "<strong>Description</strong><br />" + thisRequest.description +
+                  "<br /><br />";
+
+        if (thisRequest.reference_links) {
+            markup += "<strong>References:</strong><br />" + thisRequest.reference_links + "<br /> <br />";
+              }
+
+
+
+        jQuery("#requestarea").append(markup);
+        jQuery('.editbutton').click(function() {
+            editRequest();
+        });
+
+    } catch(err) {
+        // Otherwise display an error message and bounce
+        console.log(err);
+        requestNotFound();
+        return;
+    }
 }
 
 function requestNotFound() {
@@ -149,7 +151,59 @@ function cancelChanges () {
     loadRequest();
 }
 
+function loadComments() {
 
+    var markup;
+
+    jQuery('#commentarea').empty();
+
+    // Load the comments for this request
+
+    console.log(thisRequest);
+    jQuery.when(getCommentsByRequestId(thisRequest.request_id)).done(function(response) {
+        console.log(response);
+        comments = response;
+        console.log(comments);
+
+
+        markup = "<h3> Comments </h3><br />"
+
+        if (comments.length == 0)  {
+            markup += "Be the first to comment on this request!";
+        } else {
+            console.log("Doing comment loop")
+            for (var i = 0; i < comments.length; i++) {
+                markup += "<div class='request_comment'>";
+                markup += "<strong>" + comments[i].author + "</strong><br />";
+                markup += comments[i].comment_text + "<br />";
+                markup += "</div>";
+            }
+        }
+
+        // Add the reply area TODO make sure user is logged in
+        markup += "<br><textarea id='newcomment'></textarea><br />"
+        markup += "<button id='submitcomment'>Submit comment</button>";
+        jQuery("#commentarea").append(markup);
+
+        jQuery('#submitcomment').click(function() {
+
+            submitComment(jQuery('#newcomment').val());
+
+        });
+    });
+}
+
+function submitComment (text) {
+    newComment = new Comment();
+
+    newComment.comment_text = text;
+    newComment.request_id = thisRequest.request_id;
+
+    jQuery.when(postCommentAjax(newComment)).done(function(e){
+            loadComments();
+    });
+
+}
 
 function getUrlParameter(name) {
     //Strip the ID parameter out of the URL query string. Stole this
