@@ -9,6 +9,7 @@ var thisRequest = new Object();
 
 jQuery( document ).ready(function() {
     loadRequest();
+    loadComments();
 });
 
 function getRequest() {
@@ -147,6 +148,8 @@ function cancelChanges () {
     jQuery('#requestarea').empty();
     loadRequest();
 }
+
+
 
 function getUrlParameter(name) {
     //Strip the ID parameter out of the URL query string. Stole this

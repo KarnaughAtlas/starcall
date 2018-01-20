@@ -227,8 +227,6 @@
         $userIsAdmin = (current_user_can('administrator') || current_user_can('moderator'));
         $currentUser = get_current_user_id();
 
-        write_log("Current user: ".$currentUser." User is admin: " .$userIsAdmin);
-
         foreach ($requests as $request) {
             if ($userIsAdmin){
                 // Admins and moderators can modify any request
@@ -440,7 +438,7 @@
 
               if (current_user_can('administrator') || current_user_can('moderator')) {
                   // User is authorized
-                  $deletedRows = $wpdb->delete( 'wpsc_rq_requests', array( 'ID' => $parms['request_id'] ) );
+                  $deletedRows = $wpdb->delete( 'wpsc_rq_requests', array( 'request_id' => $parms['request_id'] ) );
                   if ($deletedRows != 1) {
                       // We should only have affected one row
                       $response->success = true;
@@ -486,6 +484,8 @@
 
           // Objects
           $comments = new \stdClass();
+          $userIsAdmin = (current_user_can('administrator') || current_user_can('moderator'));
+          $currentUser = get_current_user_id();
 
           // Initialize SQL query
           $sql = 'SELECT comment_id,request_id,author_id, u1.user_login AS author,
@@ -501,32 +501,45 @@
 
           if($params) {
               // Build the WHERE clause
-              if(isset($params['user_id'])) {
+              if(isset($params['author_id'])) {
                   $filters[] = 'author_id = ' + $params['user_id'];
               }
 
               if(isset($params['request_id'])) {
-                  $filters[] = 'request_ID = ' + $params['request_id'];
+                  $filters[] = 'request_id = ' + $params['request_id'];
               }
-
-          } else {
-              // No filters supplied by user
-              if (!current_user_can('administrator') &&
-                  !current_user_can('moderator')) {
-                    // User is a filthy peasant, they may not see the glory of
-                    // unapproved comments
-                    $filters = 'status = "approved"';
-                  }  
           }
 
-          // IMPLODE THE FILTERS
+          if($filters.length == 0) { // Check here cause we might have bogus parms
+              // No filters supplied by user
+              if (!$userIsAdmin) {
+                    // User is a filthy peasant, they may not see the glory of
+                    // unapproved comments
+                    $filters[] = 'status = "approved"';
+              }
+          }
+
+          // IMPLOSION
           if (isset($filters)) {
               $sql .= ' WHERE ' . implode(' AND ', $filters);
           }
 
           // Query the database and return the response
+          $comments = $wpdb->get_results($sql);
 
-          return("This isn't done yet!");
+          foreach ($comments as $comment) {
+              if ($userIsAdmin){
+                  // Admins and moderators can modify any request
+                  $comment->user_authorized = true;
+              } elseif ($currentUser == $comment->author_id) {
+                  // Users can modify their own requests
+                  $comment->user_authorized = true;
+              } else {
+                  // No touchy
+                  $comment->user_authorized = false;
+              }
+          }
+    		return($comments);
       }
 
       public function post_comment (WP_REST_Request $request) {
@@ -541,13 +554,133 @@
       // Parms: JSON
       //------------------------------------------------------------------------
 
-          global $wpdb;
+      $response = new \stdClass();
 
-          // TODO write this function :-)
+      // Get our JSON from the HTTP comment body
+      $commentToUpdate = json_decode($request -> get_body());
 
-          return("This isn't done yet!");
+      if($commentToUpdate !== null) {
+          // Successfully got the post body
+        if (isset($commentToUpdate->comment_id)) {
+            // We're updating an existing comment
+            // First, let's get the comment we're changing
+            $sql = "SELECT * FROM wpsc_rq_comments " .
+                   "WHERE comment_id = " . $commentToUpdate->comment_id;
 
+            $existingComment = $wpdb->get_row($sql);
+
+            if ($existingComment) {
+                // Found it. Make sure the user is allowed to do this
+                // Must be mod, admin, or the owner of the comment
+                $currentUser = get_current_user_id();
+
+                if (current_user_can('moderator') ||
+                    current_user_can('administrator') ||
+                    $currentUser == $existingComment->author_id) {
+                    // Do the update
+
+                    // We're using the wpdb object for database access,
+                    // so we need to build a few arrays for it.
+
+                    // Set the table we're going to update
+
+                    $table = 'wpsc_rq_comments';
+
+                    // Build data array for fields to update
+
+                    $data = array(
+                      'request_id' => $commentToUpdate->request_id,
+                       'author_id' => $commentToUpdate->author_id,
+                        'reply_id' => $commentToUpdate->reply_id,
+                    'comment_text' => $commentToUpdate->comment_text,
+                          'status' => $commentToUpdate->status,
+                       'edit_user' => $currentUser
+                   );
+
+                   // Build the where array
+                   $where = array('comment_id' => $commentToUpdate->comment_id);
+
+                   // Now we can do the update. Success should have the total
+                   // rows affected.
+                   $success = $wpdb->update( $table, $data, $where);
+
+                   if ($success) {
+                       // We did it, guys
+                       $response->success = true;
+                       $response->rows_updaded = $success;
+
+                   } else {
+                       // Update failed
+                       write_log("ERROR: wpdb->update barfed.");
+                       write_log("Comment ID: " . $commentToUpdate->comment_id);
+                       write_log($data);
+
+                       $response->success = false;
+                       $response->errmsg = 'Error updating comment';
+                   }
+
+                } else {
+                    // User is not authorized, send error
+                    $response->success = false;
+                    $response->errmsg = 'User is not authorized';
+                }
+
+            } else {
+                // Didn't find the comment, send error
+                $response->success = false;
+                $response->errmsg = 'Comment with ID ' . $commentToUpdate->comment_id . ' not found';
+            }
+        } else {
+            // We're submitting a new comment. Do we have a valid user?
+            if (current_user_can('read')) {
+                // Insert comment
+                // We're using the wpdb object for database access,
+                // so we need to build a few arrays for it.
+
+                // Set the table
+                $table = 'wpsc_rq_comments';
+                $commentStatus = 'approved';
+
+                $currentUser = get_current_user_id();
+
+                // Build data array for fields to insert
+                $data = array(
+                    'request_id' => $commentToUpdate->request_id,
+                     'author_id' => $commentToUpdate->author_id,
+                      'reply_id' => $commentToUpdate->reply_id,
+                  'comment_text' => $commentToUpdate->comment_text,
+                        'status' => $commentStatus,
+               );
+
+                // Now we can do the insert. Success here will have the
+                // total number of rows affected, which hopefully will be 1
+                $success = $wpdb->insert( $table, $data);
+
+                if($success) {
+                    // Insert successful!
+                    $response->success = true;
+                    $response->new_id = $wpdb->insert_id;
+
+                } else {
+                    // Error inserting
+                    $response->success = false;
+                    $response->errmsg = 'Error occurred during insert';
+                }
+
+            } else {
+                // User is not valid or not logged in
+                $response->success = false;
+                $response->errmsg = 'Invalid user - are you logged in?';
+            }
+        }
+      } else {
+        // We didn't get the post body
+        $response->success = false;
+        $response->errmsg = "Failed to get post body";
       }
+
+      return($response);
+  }
 
       public function delete_comment (WP_REST_Request $request) {
 
@@ -562,13 +695,41 @@
       // Parms: JSON
       //------------------------------------------------------------------------
 
-          global $wpdb;
+      global $wpdb;
+      $response = new \stdClass();
 
-          // TODO write this function :-)
+      $params = $request->get_params();
 
-          return("This isn't done yet!");
+      if (isset($params['request_id'])) {
 
+          if (current_user_can('administrator') || current_user_can('moderator')) {
+              // User is authorized
+              $deletedRows = $wpdb->delete( 'wpsc_rq_comments', array( 'comment_id' => $parms['comment_id'] ) );
+              if ($deletedRows != 1) {
+                  // We should only have affected one row
+                  $response->success = true;
+              } else {
+                  // Something went wrong
+                  write_log('Attempting to delete ID: ' . $parms['request_id']);
+                  write_log('Error occurred, affected '.$deletedRows.' rows');
+                  $response->success = false;
+                  $response->errmsg = 'Error occurred during delete - see debug.log';
+              }
+
+          } else {
+              //user is not authorized
+              $response->success = false;
+              $response->errmsg = 'User is not authorized';
+          }
+
+      } else {
+          // No ID, send an error
+          $response->success = false;
+          $response->errmsg = 'No ID passed for delete';
       }
+
+      return($response);
+  }
 
       public function get_gifts (WP_REST_Request $request) {
 
