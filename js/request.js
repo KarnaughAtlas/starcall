@@ -1,4 +1,4 @@
-//------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------
 // File name: request.js
 // Description: Collection of scripts used when displaying a single request
 // Author: JSHayford
@@ -6,6 +6,8 @@
 //------------------------------------------------------------------------------
 
 var thisRequest = new Object();
+var comments_per_page = 15;
+var comments = new Object();
 
 jQuery( document ).ready(function() {
     jQuery.when(getRequest()).done(function(e) {
@@ -153,30 +155,45 @@ function cancelChanges () {
 
 function loadComments() {
 
-    var markup;
-
     jQuery('#commentarea').empty();
 
     // Load the comments for this request
 
     console.log(thisRequest);
     jQuery.when(getCommentsByRequestId(thisRequest.request_id)).done(function(response) {
-        console.log(response);
         comments = response;
-        console.log(comments);
+        // Display the first page of comments
+        makeCommentPage(1);
+    });
+}
 
+function makeCommentPage(page) {
 
-        markup = "<h3> Comments </h3><br />"
+        var markup;
 
         if (comments.length == 0)  {
-            markup += "Be the first to comment on this request!";
-        } else {
-            console.log("Doing comment loop")
-            for (var i = 0; i < comments.length; i++) {
-                markup += "<div class='request_comment'>";
+            markup = "Be the first to comment on this request!";
+        } else { // We've got comments, display them
+
+            // Figure out how many pages we'll need. TODO let the user choose how
+            // many comments to display per page.
+
+            comment_pages = Math.ceil(comments.length / comments_per_page);
+
+            for (var i = (page - 1) * comments_per_page;
+                 i < (page * comments_per_page) &&
+                 i < comments.length; i++) {
+
+                markup += "<div id='rq_comment_'"+i+" class='request_comment'>";
                 markup += "<strong>" + comments[i].author + "</strong><br />";
                 markup += comments[i].comment_text + "<br />";
                 markup += "</div>";
+            }
+
+            // Clear the nav buttons and make new ones if necessary
+            jQuery('#comment_pagination').empty();
+            if (comment_pages > 1) {
+                makeCommentNavButtons();
             }
         }
 
@@ -190,7 +207,52 @@ function loadComments() {
             submitComment(jQuery('#newcomment').val());
 
         });
-    });
+}
+
+function makeCommentNavButtons() {
+
+    jQuery('#comment_pagination').append('<button id="prevpage"> < </button>');
+
+    for (i = 1; i <= comment_pages; i++) {
+        if (i == current_page) {
+            jQuery('#comment_pagination').append('<button class="thispage">' + i +
+            '</button>');
+        } else {
+            jQuery('#comment_pagination').append('<button class="pageselect">' + i +
+            '</button>');
+        }
+    }
+
+    jQuery('#comment_pagination').append('<button id="nextpage"> > </button>');
+
+    jQuery( '#nextpage' ).on( 'click', function ( e )  {
+     e.preventDefault();
+     nextCommentPage();
+    } );
+
+    jQuery( '#prevpage' ).on( 'click', function ( e )  {
+     e.preventDefault();
+     prevPage();
+    } );
+
+    jQuery( '.pageselect' ).on( 'click', function ( e )  {
+     e.preventDefault();
+     makePage(jQuery(this).text());
+    } );
+}
+
+function nextPage () {
+    if (current_page < comment_pages) {
+        current_page ++;
+        makePage(current_page);
+    }
+}
+
+function prevPage () {
+    if (current_page > 1) {
+        current_page --;
+        makePage(current_page);
+    }
 }
 
 function submitComment (text) {
@@ -199,10 +261,15 @@ function submitComment (text) {
     newComment.comment_text = text;
     newComment.request_id = thisRequest.request_id;
 
-    jQuery.when(postCommentAjax(newComment)).done(function(e){
-            loadComments();
-    });
+    if (newComment.comment_text != '') {
 
+        jQuery.when(postCommentAjax(newComment)).done(function(e){
+                loadComments();
+        });
+
+    } else {
+        alert("Comment text is blank");
+    }
 }
 
 function getUrlParameter(name) {

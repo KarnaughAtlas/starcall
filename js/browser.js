@@ -65,10 +65,6 @@ function getRequests (filter) {
 
 function makePage (page) {
 
-    console.log("Entering makePage");
-    console.log("page: " + page);
-    console.log("requests_per_page: " + requests_per_page);
-    console.log("json length: " + requests.length);
     jQuery('#requesttable tbody').empty();
 
     if (requests.length == 0) {
