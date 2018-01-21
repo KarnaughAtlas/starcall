@@ -6,7 +6,7 @@
 //------------------------------------------------------------------------------
 
 var thisRequest = new Object();
-var comments_per_page = 15;
+var comments_per_page = 5;
 var comments = new Object();
 
 jQuery( document ).ready(function() {
@@ -159,7 +159,6 @@ function loadComments() {
 
     // Load the comments for this request
 
-    console.log(thisRequest);
     jQuery.when(getCommentsByRequestId(thisRequest.request_id)).done(function(response) {
         comments = response;
         // Display the first page of comments
