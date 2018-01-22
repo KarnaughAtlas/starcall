@@ -8,6 +8,7 @@
 var thisRequest = new Object();
 var comments_per_page = 5;
 var comments = new Object();
+var current_page;
 
 jQuery( document ).ready(function() {
     jQuery.when(getRequest()).done(function(e) {
@@ -153,7 +154,7 @@ function cancelChanges () {
     loadRequest();
 }
 
-function loadComments() {
+function loadComments(loadLastPage) {
 
     jQuery('#commentarea').empty();
 
@@ -162,13 +163,19 @@ function loadComments() {
     jQuery.when(getCommentsByRequestId(thisRequest.request_id)).done(function(response) {
         comments = response;
         // Display the first page of comments
-        makeCommentPage(1);
+        if (loadLastPage) {
+            makeCommentPage(comment_pages);
+        } else {
+            makeCommentPage(1);
+        }
     });
 }
 
 function makeCommentPage(page) {
 
         var markup;
+        jQuery("#commentarea").empty();
+        current_page = page;
 
         if (comments.length == 0)  {
             markup = "Be the first to comment on this request!";
@@ -183,8 +190,16 @@ function makeCommentPage(page) {
                  i < (page * comments_per_page) &&
                  i < comments.length; i++) {
 
-                markup += "<div id='rq_comment_'"+i+" class='request_comment'>";
-                markup += "<strong>" + comments[i].author + "</strong><br />";
+                markup += "<div id='rq_comment_"+i.toString()+"' class='request_comment'>";
+                markup += "<strong>" + comments[i].author + "</strong>";
+
+                // If user is authorized, show the edit buttons
+                if (comments[i].user_authorized) {
+                    markup += "<span class='comment_edit'> edit </span><br />";
+                } else {
+                    markup += "<br />"
+                }
+
                 markup += comments[i].comment_text + "<br />";
                 markup += "</div>";
             }
@@ -206,6 +221,11 @@ function makeCommentPage(page) {
             submitComment(jQuery('#newcomment').val());
 
         });
+
+        jQuery('.comment_edit').click(function(e) {
+            console.log(e);
+            editComment(e.target.parentElement);
+        })
 }
 
 function makeCommentNavButtons() {
@@ -231,26 +251,26 @@ function makeCommentNavButtons() {
 
     jQuery( '#prevpage' ).on( 'click', function ( e )  {
      e.preventDefault();
-     prevPage();
+     prevCommentPage();
     } );
 
     jQuery( '.pageselect' ).on( 'click', function ( e )  {
      e.preventDefault();
-     makePage(jQuery(this).text());
+     makeCommentPage(jQuery(this).text());
     } );
 }
 
-function nextPage () {
+function nextCommentPage () {
     if (current_page < comment_pages) {
         current_page ++;
-        makePage(current_page);
+        makeCommentPagePage(current_page);
     }
 }
 
-function prevPage () {
+function prevCommentPage () {
     if (current_page > 1) {
         current_page --;
-        makePage(current_page);
+        makeCommentPage(current_page);
     }
 }
 
@@ -263,12 +283,17 @@ function submitComment (text) {
     if (newComment.comment_text != '') {
 
         jQuery.when(postCommentAjax(newComment)).done(function(e){
-                loadComments();
+                loadComments(true);
         });
 
     } else {
-        alert("Comment text is blank");
+        alert("Comment text can not be blank");
     }
+}
+
+function editComment(commentDiv) {
+    console.log(commentDiv);
+    var text = commentDiv
 }
 
 function getUrlParameter(name) {
