@@ -1,1 +1,71 @@
-// css
+.requestrow:hover {
+	background-color: black;
+	color: white;
+	border: 10px solid black;
+	cursor: pointer;
+}
+
+.thispage {
+	background-color: black;
+	color: white;
+}
+
+.thispage:hover {
+	cursor: default;
+}
+
+.editdescription,.submitdescription{
+	height: 600px;
+	resize: none;
+	border: 1px solid black;
+	white-space: pre-line;
+}
+
+#submitTitle, .submitsocial{
+	border: 1px solid black;
+	resize: none;
+}
+
+.submitlinks{
+	border: 1px solid black;
+	height: 150px;
+	resize: none;
+	white-space: pre-line;
+}
+
+#requestarea {
+	white-space: pre-line;
+}
+
+.request_comment {
+	border: 1px solid black;
+	padding: 5px;
+	margin: 5px;
+	white-space: pre-line;
+}
+
+.comment_controls, p {
+	float: right;
+}
+
+.comment_edit, .comment_delete {
+	margin-left: 3px;
+}
+
+.comment_edit,.comment_delete,.comment_reply:hover {
+	cursor: pointer;
+}
+
+#comment_pagination {
+	margin: auto;
+	width: 90%;
+	margin-top: 20px
+}
+
+.edit_text {
+	font-size: 8pt;
+}
+
+.create_date {
+	font-size: 9pt;
+}

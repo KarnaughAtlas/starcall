@@ -8,12 +8,16 @@
 var thisRequest = new Object();
 var comments_per_page = 5;
 var comments = new Object();
+var comment_pages;
 var current_page;
+// This flag tells the scripts if the user is already editing a comment
+var editing = false;
+
 
 jQuery( document ).ready(function() {
     jQuery.when(getRequest()).done(function(e) {
         loadRequest();
-        loadComments();
+        loadComments(1);
     });
 });
 
@@ -61,8 +65,6 @@ function loadRequest () {
         if (thisRequest.reference_links) {
             markup += "<strong>References:</strong><br />" + thisRequest.reference_links + "<br /> <br />";
               }
-
-
 
         jQuery("#requestarea").append(markup);
         jQuery('.editbutton').click(function() {
@@ -154,78 +156,104 @@ function cancelChanges () {
     loadRequest();
 }
 
-function loadComments(loadLastPage) {
-
-    jQuery('#commentarea').empty();
+function loadComments(loadPage) {
 
     // Load the comments for this request
 
     jQuery.when(getCommentsByRequestId(thisRequest.request_id)).done(function(response) {
         comments = response;
         // Display the first page of comments
-        if (loadLastPage) {
-            makeCommentPage(comment_pages);
-        } else {
-            makeCommentPage(1);
-        }
+        makeCommentPage(loadPage);
     });
 }
 
 function makeCommentPage(page) {
 
-        var markup;
-        jQuery("#commentarea").empty();
-        current_page = page;
+    var markup = "";
+    jQuery("#commentarea").empty();
+    current_page = page;
 
-        if (comments.length == 0)  {
-            markup = "Be the first to comment on this request!";
-        } else { // We've got comments, display them
+    if (comments.length == 0)  {
+        markup = "Be the first to comment on this request!";
+    } else { // We've got comments, display them
 
-            // Figure out how many pages we'll need. TODO let the user choose how
-            // many comments to display per page.
+        // Figure out how many pages we'll need. TODO let the user choose how
+        // many comments to display per page.
 
-            comment_pages = Math.ceil(comments.length / comments_per_page);
+        comment_pages = Math.ceil(comments.length / comments_per_page);
 
-            for (var i = (page - 1) * comments_per_page;
-                 i < (page * comments_per_page) &&
-                 i < comments.length; i++) {
+        for (var i = (page - 1) * comments_per_page;
+             i < (page * comments_per_page) &&
+             i < comments.length; i++) {
 
-                markup += "<div id='rq_comment_"+i.toString()+"' class='request_comment'>";
-                markup += "<strong>" + comments[i].author + "</strong>";
+            markup += "<div id='rq_comment_"+i.toString()+"' class='request_comment'>";
+            markup += "<strong>" + comments[i].author + "</strong>";
+            markup += " - <span class='create_date'>"+comments[i].create_date +"</span>";
 
-                // If user is authorized, show the edit buttons
-                if (comments[i].user_authorized) {
-                    markup += "<span class='comment_edit'> edit </span><br />";
-                } else {
-                    markup += "<br />"
-                }
+            markup+="<div class='comment_controls'><span class='comment_reply'>reply</span>"
 
-                markup += comments[i].comment_text + "<br />";
-                markup += "</div>";
+            // If user is authorized, show the edit buttons
+            if (comments[i].user_authorized) {
+                markup += "<span class='comment_edit'>edit</span><span class='comment_delete'>delete</span>";
             }
 
-            // Clear the nav buttons and make new ones if necessary
-            jQuery('#comment_pagination').empty();
-            if (comment_pages > 1) {
-                makeCommentNavButtons();
+            markup += "</div><br />";
+            markup += "<span class='comment_text'>" +comments[i].comment_text + "</span><br />";
+
+
+            if (comments[i].edit_date && comments[i].edit_date != comments[i].create_date) {
+                markup += "<br /><span class='edit_text'> Edited by " + comments[i].editing_user +
+                " on " + comments[i].edit_date + "</span>";
             }
+
+            markup += "</div>";
         }
 
-        // Add the reply area TODO make sure user is logged in
-        markup += "<br><textarea id='newcomment'></textarea><br />"
-        markup += "<button id='submitcomment'>Submit comment</button>";
-        jQuery("#commentarea").append(markup);
+        // Clear the nav buttons and make new ones if necessary
+        jQuery('#comment_pagination').empty();
+        if (comment_pages > 1) {
+            makeCommentNavButtons();
+        }
+    }
 
-        jQuery('#submitcomment').click(function() {
+    jQuery('#commentarea').append(markup);
 
-            submitComment(jQuery('#newcomment').val());
+    // Add the reply area TODO make sure user is logged in
+    jQuery('#newcommentarea').empty();
 
-        });
+    markup = "<br /><span class=submit_reply><strong>Submit a comment</strong></span>"
+    markup += "<br /><textarea id='newcomment'></textarea>"
+    markup += "<br /><button id='submitcomment'>Submit comment</button>";
 
-        jQuery('.comment_edit').click(function(e) {
-            console.log(e);
-            editComment(e.target.parentElement);
-        })
+    jQuery("#newcommentarea").append(markup);
+
+    jQuery('#submitcomment').click(function() {
+
+    submitComment(jQuery('#newcomment').val());
+
+    });
+
+    jQuery('.comment_edit').click(function(e) {
+        // Pass the parent (the entire comment div)
+
+        if(!editing){
+            editComment(e.target.parentElement.parentElement);
+        } else {
+            alert("You are already editing a comment!")
+        }
+    });
+
+    jQuery('.comment_delete').click(function(e) {
+        // Permanently delete comment after confirm
+
+        if (confirm("Really delete? This can not be undone.")) {
+            alert("Well too bad, this isn't done yet");
+        }
+    });
+
+    jQuery('.comment_reply').click(function(e) {
+        alert("You done clicked reply");
+    })
 }
 
 function makeCommentNavButtons() {
@@ -263,7 +291,7 @@ function makeCommentNavButtons() {
 function nextCommentPage () {
     if (current_page < comment_pages) {
         current_page ++;
-        makeCommentPagePage(current_page);
+        makeCommentPage(current_page);
     }
 }
 
@@ -283,7 +311,8 @@ function submitComment (text) {
     if (newComment.comment_text != '') {
 
         jQuery.when(postCommentAjax(newComment)).done(function(e){
-                loadComments(true);
+            // Load the last page
+            loadComments(comment_pages);
         });
 
     } else {
@@ -292,8 +321,46 @@ function submitComment (text) {
 }
 
 function editComment(commentDiv) {
-    console.log(commentDiv);
-    var text = commentDiv
+    // Turn on the editing flag; we can only edit one at a time
+    editing = true;
+
+    // Get the text from the span to pre-load the editor
+    var text = commentDiv.querySelector(".comment_text").innerHTML;
+    commentDiv.innerHTML = "";
+    markup = "<textarea id='edit_comment'>" + text +
+    "</textarea><br />"
+    markup += "<button class='saveEdit'>Save</button>"
+    markup += "<button class='cancelEdit'>Cancel</button>"
+
+
+
+    jQuery(commentDiv).append(markup);
+    // Set the height of the text box to fit comment
+    setHeight("edit_comment");
+    jQuery(".saveEdit").click(function(e) {
+
+        // Pull the number out of the string by replacing all non-number chars
+        // with ''
+        thisCommentIndex = commentDiv.id.replace( /^\D+/g, '');;
+        editCommentObj = comments[thisCommentIndex];
+
+        newText = commentDiv.querySelector("#edit_comment").value;
+
+        editCommentObj.comment_text = newText;
+
+        postCommentAjax(editCommentObj);
+        makeCommentPage(current_page);
+
+        commentDiv.querySelector("#edit_comment").innerHTML = newText;
+    });
+
+    jQuery(".cancelEdit").click(function(e) {
+        // Just reload the page
+        makeCommentPage(current_page);
+    });
+
+        editing = false;
+
 }
 
 function getUrlParameter(name) {
@@ -303,3 +370,8 @@ function getUrlParameter(name) {
     var results = regex.exec(location.search);
     return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
 };
+;
+
+function setHeight(fieldId){
+    document.getElementById(fieldId).style.height = document.getElementById(fieldId).scrollHeight+'px';
+}

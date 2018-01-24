@@ -561,6 +561,7 @@
       $commentToUpdate = json_decode($request -> get_body());
 
       if($commentToUpdate !== null) {
+          write_log($commentToUpdate);
           // Successfully got the post body
         if (isset($commentToUpdate->comment_id)) {
             // We're updating an existing comment
@@ -594,7 +595,7 @@
                        'author_id' => $commentToUpdate->author_id,
                         'reply_id' => $commentToUpdate->reply_id,
                     'comment_text' => $commentToUpdate->comment_text,
-                          'status' => $commentToUpdate->status,
+                  'comment_status' => $commentToUpdate->status,
                        'edit_user' => $currentUser
                    );
 
@@ -633,6 +634,7 @@
             }
         } else {
             // We're submitting a new comment. Do we have a valid user?
+            write_log("We're in the new comment block");
             if (current_user_can('read')) {
                 // Insert comment
                 // We're using the wpdb object for database access,
