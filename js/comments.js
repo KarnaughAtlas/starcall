@@ -55,6 +55,32 @@ function getCommentsByRequestId (id) {
    }
 }
 
+function getCommentsByParentId (id) {
+    if (id) {
+        var endpoint = '/wp-json/starcall/v1/comments/' + '?reply_id=' + id;
+
+        return jQuery.ajax( {
+        url: endpoint,
+        method: 'GET',
+        beforeSend: function ( xhr ) {
+         xhr.setRequestHeader( 'X-WP-Nonce', wpApiSettings.nonce );
+        },
+        success: function ( response ) {
+         return(response.JSON);
+        },
+        failure: function ( response, err ) {
+         console.log("Ajax failure");
+         console.log(err);
+        },
+        cache: false,
+        dataType: 'json'
+        } );
+   } else {
+       // We didn't get an ID
+       return (false);
+   }
+}
+
 function postCommentAjax(comment) {
     var endpoint = '/wp-json/starcall/v1/comments/';
     return jQuery.ajax( {

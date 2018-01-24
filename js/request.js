@@ -7,7 +7,6 @@
 
 var thisRequest = new Object();
 var comments_per_page = 5;
-var comments = new Object();
 var comment_pages;
 var current_page;
 // This flag tells the scripts if the user is already editing a comment
@@ -17,7 +16,7 @@ var editing = false;
 jQuery( document ).ready(function() {
     jQuery.when(getRequest()).done(function(e) {
         loadRequest();
-        loadComments(1);
+        makeComments(thisRequest.request_id);
     });
 });
 
@@ -156,152 +155,6 @@ function cancelChanges () {
     loadRequest();
 }
 
-function loadComments(loadPage) {
-
-    // Load the comments for this request
-
-    jQuery.when(getCommentsByRequestId(thisRequest.request_id)).done(function(response) {
-        comments = response;
-        // Display the first page of comments
-        makeCommentPage(loadPage);
-    });
-}
-
-function makeCommentPage(page) {
-
-    var markup = "";
-    jQuery("#commentarea").empty();
-    current_page = page;
-
-    if (comments.length == 0)  {
-        markup = "Be the first to comment on this request!";
-    } else { // We've got comments, display them
-
-        // Figure out how many pages we'll need. TODO let the user choose how
-        // many comments to display per page.
-
-        comment_pages = Math.ceil(comments.length / comments_per_page);
-
-        for (var i = (page - 1) * comments_per_page;
-             i < (page * comments_per_page) &&
-             i < comments.length; i++) {
-
-            markup += "<div id='rq_comment_"+i.toString()+"' class='request_comment'>";
-            markup += "<strong>" + comments[i].author + "</strong>";
-            markup += " - <span class='create_date'>"+comments[i].create_date +"</span>";
-
-            markup+="<div class='comment_controls'><span class='comment_reply'>reply</span>"
-
-            // If user is authorized, show the edit buttons
-            if (comments[i].user_authorized) {
-                markup += "<span class='comment_edit'>edit</span><span class='comment_delete'>delete</span>";
-            }
-
-            markup += "</div><br />";
-            markup += "<span class='comment_text'>" +comments[i].comment_text + "</span><br />";
-
-
-            if (comments[i].edit_date && comments[i].edit_date != comments[i].create_date) {
-                markup += "<br /><span class='edit_text'> Edited by " + comments[i].editing_user +
-                " on " + comments[i].edit_date + "</span>";
-            }
-
-            markup += "</div>";
-        }
-
-        // Clear the nav buttons and make new ones if necessary
-        jQuery('#comment_pagination').empty();
-        if (comment_pages > 1) {
-            makeCommentNavButtons();
-        }
-    }
-
-    jQuery('#commentarea').append(markup);
-
-    // Add the reply area TODO make sure user is logged in
-    jQuery('#newcommentarea').empty();
-
-    markup = "<br /><span class=submit_reply><strong>Submit a comment</strong></span>"
-    markup += "<br /><textarea id='newcomment'></textarea>"
-    markup += "<br /><button id='submitcomment'>Submit comment</button>";
-
-    jQuery("#newcommentarea").append(markup);
-
-    jQuery('#submitcomment').click(function() {
-
-    submitComment(jQuery('#newcomment').val());
-
-    });
-
-    jQuery('.comment_edit').click(function(e) {
-        // Pass the parent (the entire comment div)
-
-        if(!editing){
-            editComment(e.target.parentElement.parentElement);
-        } else {
-            alert("You are already editing a comment!")
-        }
-    });
-
-    jQuery('.comment_delete').click(function(e) {
-        // Permanently delete comment after confirm
-
-        if (confirm("Really delete? This can not be undone.")) {
-            alert("Well too bad, this isn't done yet");
-        }
-    });
-
-    jQuery('.comment_reply').click(function(e) {
-        alert("You done clicked reply");
-    })
-}
-
-function makeCommentNavButtons() {
-
-    jQuery('#comment_pagination').append('<button id="prevpage"> < </button>');
-
-    for (i = 1; i <= comment_pages; i++) {
-        if (i == current_page) {
-            jQuery('#comment_pagination').append('<button class="thispage">' + i +
-            '</button>');
-        } else {
-            jQuery('#comment_pagination').append('<button class="pageselect">' + i +
-            '</button>');
-        }
-    }
-
-    jQuery('#comment_pagination').append('<button id="nextpage"> > </button>');
-
-    jQuery( '#nextpage' ).on( 'click', function ( e )  {
-     e.preventDefault();
-     nextCommentPage();
-    } );
-
-    jQuery( '#prevpage' ).on( 'click', function ( e )  {
-     e.preventDefault();
-     prevCommentPage();
-    } );
-
-    jQuery( '.pageselect' ).on( 'click', function ( e )  {
-     e.preventDefault();
-     makeCommentPage(jQuery(this).text());
-    } );
-}
-
-function nextCommentPage () {
-    if (current_page < comment_pages) {
-        current_page ++;
-        makeCommentPage(current_page);
-    }
-}
-
-function prevCommentPage () {
-    if (current_page > 1) {
-        current_page --;
-        makeCommentPage(current_page);
-    }
-}
-
 function submitComment (text) {
     newComment = new Comment();
 
@@ -360,6 +213,51 @@ function editComment(commentDiv) {
     });
 
         editing = false;
+
+}
+
+function makeComments(id, replyId) {
+
+    var comments = new Comment();
+
+    if (replyId) {
+        // We're getting replies to comments
+        comments = getCommentsByParentId(id);
+    } else {
+        // We're getting top-level comments on the requests
+        comments = getCommentsByRequestId(id);
+    }
+
+    for (var i = 0; i < comments.length; i++) {
+        markup += "<div id='rq_comment_"+i.toString()+"' class='request_comment'>";
+        markup += "<strong>" + comments[i].author + "</strong>";
+        markup += " - <span class='create_date'>"+comments[i].create_date +"</span>";
+
+        markup+="<div class='comment_controls'><span class='comment_reply'>reply</span>"
+
+        // If user is authorized, show the edit buttons
+        if (comments[i].user_authorized) {
+            markup += "<span class='comment_edit'>edit</span><span class='comment_delete'>delete</span>";
+        }
+
+        markup += "</div><br />";
+        markup += "<span class='comment_text'>" +comments[i].comment_text + "</span><br />";
+
+
+        if (comments[i].edit_date && comments[i].edit_date != comments[i].create_date) {
+            markup += "<br /><span class='edit_text'> Edited by " + comments[i].editing_user +
+            " on " + comments[i].edit_date + "</span>";
+        }
+
+        // Recurse to make the replies to this comment
+
+        if (comments[i].replies) {
+            makeComments(comments[i].replies);
+        }
+
+        markup += "</div>";
+
+        jQuery('#commentarea').append(markup);
 
 }
 
