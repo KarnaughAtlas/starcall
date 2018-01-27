@@ -9,6 +9,7 @@ var thisRequest = new Object();
 var comments_per_page = 5;
 var comment_pages;
 var current_page;
+
 // This flag tells the scripts if the user is already editing a comment
 var editing = false;
 
@@ -16,6 +17,8 @@ var editing = false;
 jQuery( document ).ready(function() {
     jQuery.when(getRequest()).done(function(e) {
         loadRequest();
+        jQuery('#commentarea').empty();
+        jQuery('#commentarea').append('<hr>Comments</h3>');
         makeComments(thisRequest.request_id);
     });
 });
@@ -213,7 +216,6 @@ function editComment(commentDiv) {
     });
 
         editing = false;
-
 }
 
 function makeComments(id, replyId) {
@@ -222,43 +224,15 @@ function makeComments(id, replyId) {
 
     if (replyId) {
         // We're getting replies to comments
-        comments = getCommentsByParentId(id);
+        getCommentsByParentId(id, function(response){
+            console.log(response);
+        });
+
     } else {
-        // We're getting top-level comments on the requests
-        comments = getCommentsByRequestId(id);
+        getCommentsByRequestId(id, function(response){
+            console.log(response);
+        });
     }
-
-    for (var i = 0; i < comments.length; i++) {
-        markup += "<div id='rq_comment_"+i.toString()+"' class='request_comment'>";
-        markup += "<strong>" + comments[i].author + "</strong>";
-        markup += " - <span class='create_date'>"+comments[i].create_date +"</span>";
-
-        markup+="<div class='comment_controls'><span class='comment_reply'>reply</span>"
-
-        // If user is authorized, show the edit buttons
-        if (comments[i].user_authorized) {
-            markup += "<span class='comment_edit'>edit</span><span class='comment_delete'>delete</span>";
-        }
-
-        markup += "</div><br />";
-        markup += "<span class='comment_text'>" +comments[i].comment_text + "</span><br />";
-
-
-        if (comments[i].edit_date && comments[i].edit_date != comments[i].create_date) {
-            markup += "<br /><span class='edit_text'> Edited by " + comments[i].editing_user +
-            " on " + comments[i].edit_date + "</span>";
-        }
-
-        // Recurse to make the replies to this comment
-
-        if (comments[i].replies) {
-            makeComments(comments[i].replies);
-        }
-
-        markup += "</div>";
-
-        jQuery('#commentarea').append(markup);
-
 }
 
 function getUrlParameter(name) {
@@ -267,9 +241,9 @@ function getUrlParameter(name) {
     var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
     var results = regex.exec(location.search);
     return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
-};
-;
+}
 
-function setHeight(fieldId){
+
+function setHeight(fieldId) {
     document.getElementById(fieldId).style.height = document.getElementById(fieldId).scrollHeight+'px';
 }

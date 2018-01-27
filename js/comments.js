@@ -29,7 +29,7 @@ function Comment(id,requestId,authorId,replyId,text,createDate,editDate,
     }
 }
 
-function getCommentsByRequestId (id) {
+function getCommentsByRequestId (id,callback) {
     if (id) {
         var endpoint = '/wp-json/starcall/v1/comments/' + '?request_id=' + id;
 
@@ -40,7 +40,7 @@ function getCommentsByRequestId (id) {
          xhr.setRequestHeader( 'X-WP-Nonce', wpApiSettings.nonce );
         },
         success: function ( response ) {
-         return(response.JSON);
+         return(response.responseJSON);
         },
         failure: function ( response, err ) {
          console.log("Ajax failure");
@@ -48,14 +48,16 @@ function getCommentsByRequestId (id) {
         },
         cache: false,
         dataType: 'json'
-        } );
+    } ).done(function() {
+            callback();
+        });
    } else {
        // We didn't get an ID
        return (false);
    }
 }
 
-function getCommentsByParentId (id) {
+function getCommentsByParentId (id,callback) {
     if (id) {
         var endpoint = '/wp-json/starcall/v1/comments/' + '?reply_id=' + id;
 
@@ -66,7 +68,7 @@ function getCommentsByParentId (id) {
          xhr.setRequestHeader( 'X-WP-Nonce', wpApiSettings.nonce );
         },
         success: function ( response ) {
-         return(response.JSON);
+         return(response.responseJSON);
         },
         failure: function ( response, err ) {
          console.log("Ajax failure");
