@@ -33,26 +33,27 @@ function getCommentsByRequestId (id,callback) {
     if (id) {
         var endpoint = '/wp-json/starcall/v1/comments/' + '?request_id=' + id;
 
-        return jQuery.ajax( {
+        jQuery.ajax( {
         url: endpoint,
         method: 'GET',
         beforeSend: function ( xhr ) {
          xhr.setRequestHeader( 'X-WP-Nonce', wpApiSettings.nonce );
         },
         success: function ( response ) {
-         return(response.responseJSON);
+         callback(response);
         },
         failure: function ( response, err ) {
          console.log("Ajax failure");
          console.log(err);
         },
         cache: false,
-        dataType: 'json'
-    } ).done(function() {
-            callback();
-        });
+        dataType: 'json' });
+
+
+
    } else {
        // We didn't get an ID
+       // Return JSON with informative error
        return (false);
    }
 }
