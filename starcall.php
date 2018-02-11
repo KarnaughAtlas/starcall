@@ -9,6 +9,84 @@
    */
 
 
+//------------------------------------------------------------------------
+// Function: make_comment_array
+//
+// This request gets comments. Initial support only for retrieving by
+/// user ID, reply ID and request ID.
+//
+// URL: https://starcall.sylessae.com/wp-json/starcall/v1/comments/
+// Method: GET
+// Returns: JSON
+// Parms: URL parms - user_id or request_id
+//------------------------------------------------------------------------
+function make_comment_array($params,$currentUser,$userIsAdmin) {
+    global $wpdb;
+
+   // Initialize SQL query
+   $sql = 'SELECT comment_id,request_id,author_id, u1.user_login AS author,
+                  reply_id,comment_text, create_date, edit_user,
+                  u2.user_login AS editing_user, edit_date, comment_status
+           FROM wpsc_rq_comments AS comments
+           JOIN wp_users AS u1 ON comments.author_id = u1.ID
+           LEFT JOIN wp_users AS u2 ON comments.edit_user = u2.ID';
+
+   if($params) {
+       // Build the WHERE clause
+       if(isset($params['author_id'])) {
+           $filters[] = 'author_id = ' . $params['user_id'];
+       }
+
+       if(isset($params['request_id'])) {
+           $filters[] = 'request_id = ' . $params['request_id'];
+       }
+
+       if(isset($params['reply_id'])) {
+           $filters[] = 'reply_id = ' . $params['reply_id'];
+       }
+
+       if(isset($params['comment_id'])) {
+           $filters[] = 'comment_id = ' . $params['comment_id'];
+       }
+   }
+
+   if(sizeof($filters) == 0) { // Check here cause we might have bogus parms
+       // No filters supplied by user
+       if (!$userIsAdmin) {
+             // User is a filthy peasant, they may not see the glory of
+             // unapproved comments
+             $filters[] = 'status = "approved"';
+       }
+   }
+
+   // IMPLOSION
+   if (isset($filters)) {
+       $sql .= ' WHERE ' . implode(' AND ', $filters);
+   }
+
+   // Query the database and return the response
+   write_log($sql);
+   $comments = $wpdb->get_results($sql);
+
+   foreach ($comments as $comment) {
+       if ($userIsAdmin){
+           // Admins and moderators can modify any request
+           $comment->user_authorized = true;
+       } elseif ($currentUser == $comment->author_id) {
+           // Users can modify their own requests
+           $comment->user_authorized = true;
+       } else {
+           // No touchy
+           $comment->user_authorized = false;
+       }
+
+       // Recurse to get the replies to this comment
+       $replyParams['reply_id'] = $comment->comment_id;
+       $comment->replies = make_comment_array($replyParams,$currentUser,$userIsAdmin);
+   }
+     return($comments);
+}
+
    //-----------------------------------------------------
    // REST API server for async database requests
    // 	See callback functions for usage
@@ -470,7 +548,7 @@
       // Function: get_comments
       //
       // This request gets comments. Initial support only for retrieving by
-      /// user ID and request ID.
+      /// user ID, reply ID and request ID.
       //
       // URL: https://starcall.sylessae.com/wp-json/starcall/v1/comments/
       // Method: GET
@@ -486,59 +564,11 @@
           $userIsAdmin = (current_user_can('administrator') || current_user_can('moderator'));
           $currentUser = get_current_user_id();
 
-          // Initialize SQL query
-          $sql = 'SELECT comment_id,request_id,author_id, u1.user_login AS author,
-                         reply_id,comment_text, create_date, edit_user,
-                         u2.user_login AS editing_user, edit_date, comment_status
-                  FROM wpsc_rq_comments AS comments
-                  JOIN wp_users AS u1 ON comments.author_id = u1.ID
-                  LEFT JOIN wp_users AS u2 ON comments.edit_user = u2.ID';
-
-          // Get parms out of the url
           $params = $request->get_params();
 
-          if($params) {
-              // Build the WHERE clause
-              if(isset($params['author_id'])) {
-                  $filters[] = 'author_id = ' . $params['user_id'];
-              }
+          $comments = make_comment_array($params,$currentUser,$userIsAdmin);
 
-              if(isset($params['request_id'])) {
-                  $filters[] = 'request_id = ' . $params['request_id'];
-              }
-          }
-
-          if(sizeof($filters) == 0) { // Check here cause we might have bogus parms
-              // No filters supplied by user
-              if (!$userIsAdmin) {
-                    // User is a filthy peasant, they may not see the glory of
-                    // unapproved comments
-                    $filters[] = 'status = "approved"';
-              }
-          }
-
-          // IMPLOSION
-          if (isset($filters)) {
-              $sql .= ' WHERE ' . implode(' AND ', $filters);
-          }
-
-          // Query the database and return the response
-          write_log($sql);
-          $comments = $wpdb->get_results($sql);
-
-          foreach ($comments as $comment) {
-              if ($userIsAdmin){
-                  // Admins and moderators can modify any request
-                  $comment->user_authorized = true;
-              } elseif ($currentUser == $comment->author_id) {
-                  // Users can modify their own requests
-                  $comment->user_authorized = true;
-              } else {
-                  // No touchy
-                  $comment->user_authorized = false;
-              }
-          }
-    		return($comments);
+          return($comments);
       }
 
       public function post_comment (WP_REST_Request $request) {
@@ -560,14 +590,14 @@
       // Get our JSON from the HTTP comment body
       $commentToUpdate = json_decode($request -> get_body());
 
-      if($commentToUpdate !== null) {
+      if($commentToUpdate[0] !== null) {
           write_log($commentToUpdate);
           // Successfully got the post body
-        if (isset($commentToUpdate->comment_id)) {
+        if (isset($commentToUpdate[0]->comment_id)) {
             // We're updating an existing comment
             // First, let's get the comment we're changing
             $sql = "SELECT * FROM wpsc_rq_comments " .
-                   "WHERE comment_id = " . $commentToUpdate->comment_id;
+                   "WHERE comment_id = " . $commentToUpdate[0]->comment_id;
 
             $existingComment = $wpdb->get_row($sql);
 
@@ -591,16 +621,16 @@
                     // Build data array for fields to update
 
                     $data = array(
-                      'request_id' => $commentToUpdate->request_id,
-                       'author_id' => $commentToUpdate->author_id,
-                        'reply_id' => $commentToUpdate->reply_id,
-                    'comment_text' => $commentToUpdate->comment_text,
-                  'comment_status' => $commentToUpdate->status,
+                      'request_id' => $commentToUpdate[0]->request_id,
+                       'author_id' => $commentToUpdate[0]->author_id,
+                        'reply_id' => $commentToUpdate[0]->reply_id,
+                    'comment_text' => $commentToUpdate[0]->comment_text,
+                  'comment_status' => $commentToUpdate[0]->status,
                        'edit_user' => $currentUser
                    );
 
                    // Build the where array
-                   $where = array('comment_id' => $commentToUpdate->comment_id);
+                   $where = array('comment_id' => $commentToUpdate[0]->comment_id);
 
                    // Now we can do the update. Success should have the total
                    // rows affected.
@@ -614,7 +644,7 @@
                    } else {
                        // Update failed
                        write_log("ERROR: wpdb->update barfed.");
-                       write_log("Comment ID: " . $commentToUpdate->comment_id);
+                       write_log("Comment ID: " . $commentToUpdate[0]->comment_id);
                        write_log($data);
 
                        $response->success = false;
@@ -645,18 +675,18 @@
                 $commentStatus = 'approved';
 
                 $currentUser = get_current_user_id();
-                if (isset($commentToUpdate->reply_id)) {
-                    $replyID = $commentToUpdate->reply_id;
+                if (isset($commentToUpdate[0]->reply_id)) {
+                    $replyID = $commentToUpdate[0]->reply_id;
                 } else {
                     $replyID = 0;
                 }
 
                 // Build data array for fields to insert
                 $data = array(
-                    'request_id' => $commentToUpdate->request_id,
+                    'request_id' => $commentToUpdate[0]->request_id,
                      'author_id' => $currentUser,
                       'reply_id' => $replyID,
-                  'comment_text' => $commentToUpdate->comment_text,
+                  'comment_text' => $commentToUpdate[0]->comment_text,
                 'comment_status' => $commentStatus,
                );
 

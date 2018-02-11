@@ -58,6 +58,33 @@ function getCommentsByRequestId (id,callback) {
    }
 }
 
+function getCommentById (id,callback) {
+    if (id) {
+        var endpoint = '/wp-json/starcall/v1/comments/?comment_id=' + id;
+
+        jQuery.ajax( {
+        url: endpoint,
+        method: 'GET',
+        beforeSend: function ( xhr ) {
+         xhr.setRequestHeader( 'X-WP-Nonce', wpApiSettings.nonce );
+        },
+        success: function ( response ) {
+         callback(response);
+        },
+        failure: function ( response, err ) {
+         console.log("Ajax failure");
+         console.log(err);
+        },
+        cache: false,
+        dataType: 'json' });
+
+   } else {
+       // We didn't get an ID
+       // Return JSON with informative error
+       return (false);
+   }
+}
+
 function getCommentsByParentId (id,callback) {
     if (id) {
         var endpoint = '/wp-json/starcall/v1/comments/' + '?reply_id=' + id;
@@ -69,7 +96,7 @@ function getCommentsByParentId (id,callback) {
          xhr.setRequestHeader( 'X-WP-Nonce', wpApiSettings.nonce );
         },
         success: function ( response ) {
-         return(response.responseJSON);
+         callback(response);
         },
         failure: function ( response, err ) {
          console.log("Ajax failure");
@@ -84,7 +111,7 @@ function getCommentsByParentId (id,callback) {
    }
 }
 
-function postCommentAjax(comment) {
+function postCommentAjax(comment,callback) {
     var endpoint = '/wp-json/starcall/v1/comments/';
     return jQuery.ajax( {
       url: endpoint,
@@ -94,7 +121,7 @@ function postCommentAjax(comment) {
           xhr.setRequestHeader( 'X-WP-Nonce', wpApiSettings.nonce );
       },
       complete: function ( response ) {
-          return(response);
+          callback(response);
        },
       failure: function ( response, err ) {
           alert ("Error posting comment");
