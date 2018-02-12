@@ -111,11 +111,31 @@ function getCommentsByParentId (id,callback) {
    }
 }
 
-function postCommentAjax(comment,callback) {
+function postCommentAjax(id,callback) {
+    var endpoint = '/wp-json/starcall/v1/comments/?comment_id='+id;
+    return jQuery.ajax( {
+      url: endpoint,
+      method: 'DELETE',
+      data: JSON.stringify(comment),
+      beforeSend: function ( xhr ) {
+          xhr.setRequestHeader( 'X-WP-Nonce', wpApiSettings.nonce );
+      },
+      complete: function ( response ) {
+          callback(response);
+       },
+      failure: function ( response, err ) {
+          alert ("Error posting comment");
+      },
+      cache: false,
+      dataType: 'json'
+    } );
+}
+
+function deleteCommentAjax(comment,callback) {
     var endpoint = '/wp-json/starcall/v1/comments/';
     return jQuery.ajax( {
       url: endpoint,
-      method: 'POST',
+      method: 'DELETE',
       data: JSON.stringify(comment),
       beforeSend: function ( xhr ) {
           xhr.setRequestHeader( 'X-WP-Nonce', wpApiSettings.nonce );

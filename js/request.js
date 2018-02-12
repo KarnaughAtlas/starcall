@@ -21,6 +21,10 @@ jQuery( document ).ready(function() {
 function loadComments() {
 
     var markup;
+
+    // Flag for replying to comments
+    var replying;
+
     jQuery('#commentarea').empty();
     jQuery('#commentarea').append('<h3>Comments</h3>');
     getCommentsByRequestId(thisRequest.request_id,function(comments) {
@@ -52,9 +56,10 @@ function loadComments() {
             if(!editing){
 
                 var commentDiv = e.target.parentElement.parentElement;
+                console.log(commentDiv);
                 thisCommentID = commentDiv.id.replace( /^\D+/g, '');
-
                 editComment(commentDiv,thisCommentID);
+
             } else {
                 alert("You are already editing a comment!")
             }
@@ -63,38 +68,58 @@ function loadComments() {
         jQuery('.comment_delete').click(function(e) {
             // Permanently delete comment after confirm
 
+            var commentDiv = e.target.parentElement.parentElement;
+            thisCommentID = commentDiv.id.replace( /^\D+/g, '');
+
             if (confirm("Really delete? This can not be undone.")) {
-                alert("Well too bad, this isn't done yet!");
+                getCommentById(thisCommentID,function(comment){
+                    var editCommentObj = comment;
+                    // This doesn't actually delete them; it sets the comment_status column in the DB
+                    editCommentObj[0].comment_status = 'deleted';
+                    // Send the first element only (even though there's only one) otherwise the server thinks it's an array and barfs
+                    postCommentAjax(editCommentObj[0] , function(e){
+                        loadComments();
+                    });
+                });
+
+                alert("Comment deleted.");
             }
         });
 
         jQuery('.comment_reply').click(function(e) {
-            // Create reply area
-            var commentDiv = e.target.parentElement.parentElement;
-            var origHTML = jQuery(commentDiv).html();
-            markup = '<div class="replyarea">' +
-                     '<strong>Reply</strong><br />' +
-                     '<textarea id="replyText"></textarea>' +
-                     '<button class="submit_reply">Submit</button>' +
-                     '<button class="cancel_reply">Cancel</button>';
-            jQuery(commentDiv).append(markup);
 
-            jQuery('.cancel_reply').click(function(){
-                if(confirm("Discard reply?")) {
-                    jQuery(commentDiv).empty();
-                    jQuery(commentDiv).append(origHTML);
-                }
-
-            });
-
-            jQuery('.submit_reply').click(function(){
+            if (!replying) {
+                replying = true;
+                // Create reply area
                 var commentDiv = e.target.parentElement.parentElement;
-                var text = jQuery('#replyText').val();
-                var id = commentDiv.getElementsByClassName('commentID')[0].innerHTML;
-                console.log(text);
-                console.log(id);
-                submitComment(text,id);
-            });
+                var origHTML = jQuery(commentDiv).html();
+                markup = '<div class="replyarea">' +
+                         '<strong>Reply</strong><br />' +
+                         '<textarea id="replyText"></textarea>' +
+                         '<button class="submit_reply">Submit</button>' +
+                         '<button class="cancel_reply">Cancel</button>';
+                jQuery(commentDiv).append(markup);
+
+                jQuery('.cancel_reply').click(function(){
+                    if(confirm("Discard reply?")) {
+                        jQuery('.replyarea').remove();
+                        replying = false;
+                    }
+
+                });
+
+                jQuery('.submit_reply').click(function(){
+                    var commentDiv = e.target.parentElement.parentElement;
+                    var text = jQuery('#replyText').val();
+                    var id = commentDiv.getElementsByClassName('commentID')[0].innerHTML;
+                    console.log(text);
+                    console.log(id);
+                    submitComment(text,id);
+                    replying = false;
+                });
+            } else {
+                alert("You are already replying to a comment!");
+            }
         });
     });
 }
@@ -212,8 +237,9 @@ function saveRequest(updateRequest) {
                   alert("Update successful!")
                   jQuery("#requestarea").empty();
                   // Load the request again so user sees the Changes
-                  getRequest();
-                  loadRequest();
+                  jQuery.when(getRequest()).done(function(e) {
+                      loadRequest();
+                  });
               } else {
                   // Update failed
                   alert(response.responseJSON.errmsg);
@@ -249,7 +275,7 @@ function submitComment (text,parent) {
     }
 
     if (newComment.comment_text != '') {
-        postCommentAjax(editCommentObj , function(e){
+        postCommentAjax(newComment , function(e){
             loadComments();
         });
     } else {
@@ -259,10 +285,9 @@ function submitComment (text,parent) {
 
 function editComment(commentDiv,commentID) {
     // Turn on the editing flag; we can only edit one at a time
-
+    console.log(commentDiv + " " + commentID);
     editing = true;
     //Save original HTML so we can put it back if user cancels
-    var origHTML = commentDiv.innerHTML;
 
     // Get the text from the span to pre-load the editor
     var text = commentDiv.querySelector(".comment_text").innerHTML;
@@ -282,7 +307,7 @@ function editComment(commentDiv,commentID) {
             newText = commentDiv.querySelector("#edit_comment").value;
             editCommentObj[0].comment_text = newText;
             // Get rid of replies so the server code doesn't think it's an array
-            postCommentAjax(editCommentObj , function(e){
+            postCommentAjax(editCommentObj[0] , function(e){
                 loadComments();
             });
         });
@@ -307,9 +332,11 @@ function makeComments(comments,div) {
 
     for (var i=0; i < comments.length; i++) {
 
+        var containerID = 'rq_container_' + comments[i].comment_id;
         var divID = 'rq_comment_' + comments[i].comment_id;
 
-        markup = "<div id='" + divID + "' class='request_comment'>";
+        markup = "<div id='" + containerID + "' class = 'request_container'>"
+        markup += "<div id='" + divID + "' class='request_comment'>";
         markup += "<strong>" + comments[i].author + "</strong>";
         markup += " | <span class='create_date'>"+comments[i].create_date +" </span> | ";
 
@@ -333,14 +360,13 @@ function makeComments(comments,div) {
 
         markup += "<span class = 'commentID' style='display:none'>" + comments[i].comment_id + "</span>";
 
-        markup += "</div>";
+        markup += "</div></div>";
 
         jQuery(div).append(markup);
 
-        replyDiv = jQuery('#'+divID);
-
         if (comments[i].replies.length > 0) {
             // Recurse to load replies
+            replyDiv = jQuery('#'+containerID);
             makeComments(comments[i].replies, replyDiv);
         }
     }

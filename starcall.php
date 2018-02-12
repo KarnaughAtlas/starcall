@@ -50,14 +50,11 @@ function make_comment_array($params,$currentUser,$userIsAdmin) {
        }
    }
 
-   if(sizeof($filters) == 0) { // Check here cause we might have bogus parms
-       // No filters supplied by user
-       if (!$userIsAdmin) {
-             // User is a filthy peasant, they may not see the glory of
-             // unapproved comments
-             $filters[] = 'status = "approved"';
-       }
-   }
+   if  (!$userIsAdmin) {
+         // User is a filthy peasant, they may not see the glory of
+         // unapproved comments
+         $filters[] = 'comment_status = "approved"';
+     }
 
    // IMPLOSION
    if (isset($filters)) {
@@ -590,14 +587,14 @@ function make_comment_array($params,$currentUser,$userIsAdmin) {
       // Get our JSON from the HTTP comment body
       $commentToUpdate = json_decode($request -> get_body());
 
-      if($commentToUpdate[0] !== null) {
+      if($commentToUpdate !== null) {
           write_log($commentToUpdate);
           // Successfully got the post body
-        if (isset($commentToUpdate[0]->comment_id)) {
+        if (isset($commentToUpdate->comment_id)) {
             // We're updating an existing comment
             // First, let's get the comment we're changing
             $sql = "SELECT * FROM wpsc_rq_comments " .
-                   "WHERE comment_id = " . $commentToUpdate[0]->comment_id;
+                   "WHERE comment_id = " . $commentToUpdate->comment_id;
 
             $existingComment = $wpdb->get_row($sql);
 
@@ -621,16 +618,16 @@ function make_comment_array($params,$currentUser,$userIsAdmin) {
                     // Build data array for fields to update
 
                     $data = array(
-                      'request_id' => $commentToUpdate[0]->request_id,
-                       'author_id' => $commentToUpdate[0]->author_id,
-                        'reply_id' => $commentToUpdate[0]->reply_id,
-                    'comment_text' => $commentToUpdate[0]->comment_text,
-                  'comment_status' => $commentToUpdate[0]->status,
+                      'request_id' => $commentToUpdate->request_id,
+                       'author_id' => $commentToUpdate->author_id,
+                        'reply_id' => $commentToUpdate->reply_id,
+                    'comment_text' => $commentToUpdate->comment_text,
+                  'comment_status' => $commentToUpdate->comment_status,
                        'edit_user' => $currentUser
                    );
 
                    // Build the where array
-                   $where = array('comment_id' => $commentToUpdate[0]->comment_id);
+                   $where = array('comment_id' => $commentToUpdate->comment_id);
 
                    // Now we can do the update. Success should have the total
                    // rows affected.
@@ -644,7 +641,7 @@ function make_comment_array($params,$currentUser,$userIsAdmin) {
                    } else {
                        // Update failed
                        write_log("ERROR: wpdb->update barfed.");
-                       write_log("Comment ID: " . $commentToUpdate[0]->comment_id);
+                       write_log("Comment ID: " . $commentToUpdate->comment_id);
                        write_log($data);
 
                        $response->success = false;
@@ -675,18 +672,18 @@ function make_comment_array($params,$currentUser,$userIsAdmin) {
                 $commentStatus = 'approved';
 
                 $currentUser = get_current_user_id();
-                if (isset($commentToUpdate[0]->reply_id)) {
-                    $replyID = $commentToUpdate[0]->reply_id;
+                if (isset($commentToUpdate->reply_id)) {
+                    $replyID = $commentToUpdate->reply_id;
                 } else {
                     $replyID = 0;
                 }
 
                 // Build data array for fields to insert
                 $data = array(
-                    'request_id' => $commentToUpdate[0]->request_id,
+                    'request_id' => $commentToUpdate->request_id,
                      'author_id' => $currentUser,
                       'reply_id' => $replyID,
-                  'comment_text' => $commentToUpdate[0]->comment_text,
+                  'comment_text' => $commentToUpdate->comment_text,
                 'comment_status' => $commentStatus,
                );
 
@@ -725,7 +722,8 @@ function make_comment_array($params,$currentUser,$userIsAdmin) {
       //------------------------------------------------------------------------
       // Function: delete_comment
       //
-      // TODO add description and other stuff here
+      // Deletes comments. Admin/moderator only function, users can 'trash' comments
+      // using the update_comment method.
       //
       // URL: https://starcall.sylessae.com/wp-json/starcall/v1/comments/
       // Method: DELETE
