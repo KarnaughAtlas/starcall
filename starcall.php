@@ -84,6 +84,68 @@ function make_comment_array($params,$currentUser,$userIsAdmin) {
      return($comments);
 }
 
+//------------------------------------------------------------------------
+// Function: make_comment_array
+//
+// This request gets comments. Initial support only for retrieving by
+/// user ID, reply ID and request ID.
+//
+//------------------------------------------------------------------------
+function make_gift_array($params,$currentUser,$userIsAdmin) {
+    global $wpdb;
+
+   // Initialize SQL query
+   $sql = 'SELECT id,request_id,user, u1.user_login AS user_name,
+                  path, caption, create_date, edit_date, edit_user,
+                  u2.user_login AS editing_user, status
+           FROM wpsc_rq_gifts AS gifts
+           JOIN wp_users AS u1 ON gifts.user = u1.ID
+           LEFT JOIN wp_users AS u2 ON gifts.edit_user = u2.ID';
+
+   if($params) {
+       // Build the WHERE clause
+       if(isset($params['user'])) {
+           $filters[] = 'user = ' . $params['user_id'];
+       }
+
+       if(isset($params['request_id'])) {
+           $filters[] = 'request_id = ' . $params['request_id'];
+       }
+
+   }
+
+   if  (!$userIsAdmin) {
+         // User is a filthy peasant, they may not see the glory of
+         // unapproved gifts
+         $filters[] = 'status = "approved"';
+     }
+
+   // IMPLOSION
+   if (isset($filters)) {
+       $sql .= ' WHERE ' . implode(' AND ', $filters);
+   }
+
+   // Query the database and return the response
+   write_log($sql);
+   $gifts = $wpdb->get_results($sql);
+
+   foreach ($gifts as $gift) {
+       if ($userIsAdmin){
+           // Admins and moderators can modify any gift
+           $gift->user_authorized = true;
+       } elseif ($currentUser == $gift->user) {
+           // Users can modify their own requests
+           $gift->user_authorized = true;
+       } else {
+           // No touchy
+           $gift->user_authorized = false;
+       }
+
+    }
+
+   return($gifts);
+}
+
    //-----------------------------------------------------
    // REST API server for async database requests
    // 	See callback functions for usage
@@ -128,6 +190,20 @@ function make_comment_array($params,$currentUser,$userIsAdmin) {
               array(
                   'methods'         => WP_REST_Server::DELETABLE,
                   'callback'        => array( $this, 'delete_comment' ) ),
+          ) );
+
+          register_rest_route( $namespace, '/gifts', array(
+              array(
+                  'methods'         => WP_REST_Server::READABLE,
+                  'callback'        => array( $this, 'get_gifts' ) ),
+
+              array(
+                  'methods'         => WP_REST_Server::EDITABLE,
+                  'callback'        => array( $this, 'post_gift' ) ),
+
+              array(
+                  'methods'         => WP_REST_Server::DELETABLE,
+                  'callback'        => array( $this, 'delete_gift' ) ),
           ) );
 
 
@@ -780,12 +856,19 @@ function make_comment_array($params,$currentUser,$userIsAdmin) {
       // Parms: JSON
       //------------------------------------------------------------------------
 
+          // Globals
           global $wpdb;
 
-          // TODO write this function :-)
+          // Objects
+          $gifts = new \stdClass();
+          $userIsAdmin = (current_user_can('administrator') || current_user_can('moderator'));
+          $currentUser = get_current_user_id();
 
-          return("This isn't done yet!");
+          $params = $request->get_params();
 
+          $gifts = make_gift_array($params,$currentUser,$userIsAdmin);
+
+          return($gifts);
       }
 
       public function post_gift (WP_REST_Request $request) {
@@ -800,12 +883,140 @@ function make_comment_array($params,$currentUser,$userIsAdmin) {
       // Returns: JSON
       // Parms: JSON
       //------------------------------------------------------------------------
-
           global $wpdb;
 
-          // TODO write this function :-)
+          $response = new \stdClass();
 
-          return("This isn't done yet!");
+          // Get our JSON from the HTTP gift body
+          $giftToUpdate = json_decode($request -> get_body());
+
+          if($giftToUpdate !== null) {
+              // Successfully got the post body
+            if (isset($giftToUpdate->id)) {
+                // We're updating an existing gift
+                // First, let's get the gift we're changing
+                $sql = "SELECT * FROM wpsc_rq_gifts " .
+                       "WHERE id = " . $giftToUpdate->id;
+
+                $existinggift = $wpdb->get_row($sql);
+
+                if ($existinggift) {
+                    // Found it. Make sure the user is allowed to do this
+                    // Must be mod, admin, or the owner of the gift
+                    $currentUser = get_current_user_id();
+
+                    if (current_user_can('moderator') ||
+                        current_user_can('administrator') ||
+                        $currentUser == $existinggift->user) {
+                        // Do the update
+
+                        // We're using the wpdb object for database access,
+                        // so we need to build a few arrays for it.
+
+                        // Set the table we're going to update
+
+                        $table = 'wpsc_rq_gifts';
+
+                        // Build data array for fields to update
+
+                        $data = array(
+                          'request_id' => $giftToUpdate->request_id,
+                                'user' => $giftToUpdate->user,
+                                'path' => $giftToUpdate->path,
+                             'caption' => $giftToUpdate->caption,
+                              'status' => $giftToUpdate->status,
+                           'edit_user' => $currentUser
+                       );
+
+                       // Build the where array
+                       $where = array('id' => $giftToUpdate->id);
+
+                       // Now we can do the update. Success should have the total
+                       // rows affected.
+                       $success = $wpdb->update( $table, $data, $where);
+
+                       if ($success) {
+                           // We did it, guys
+                           $response->success = true;
+                           $response->rows_updaded = $success;
+
+                       } else {
+                           // Update failed
+                           write_log("ERROR: wpdb->update barfed.");
+                           write_log("gift ID: " . $giftToUpdate->id);
+                           write_log($data);
+
+                           $response->success = false;
+                           $response->errmsg = 'Error updating gift';
+                       }
+
+                    } else {
+                        // User is not authorized, send error
+                        $response->success = false;
+                        $response->errmsg = 'User is not authorized';
+                    }
+
+                } else {
+                    // Didn't find the gift, send error
+                    $response->success = false;
+                    $response->errmsg = 'gift with ID ' . $giftToUpdate->gift_id . ' not found';
+                }
+            } else {
+                // We're submitting a new gift. Do we have a valid user?
+                if (current_user_can('read')) {
+                    // Insert gift
+                    // We're using the wpdb object for database access,
+                    // so we need to build a few arrays for it.
+
+                    // Set the table
+                    $table = 'wpsc_rq_gifts';
+                    // Initial status
+                    $giftStatus = 'submitted';
+
+                    $currentUser = get_current_user_id();
+                    if (isset($giftToUpdate->reply_id)) {
+                        $replyID = $giftToUpdate->reply_id;
+                    } else {
+                        $replyID = 0;
+                    }
+
+                    // Build data array for fields to insert
+                    $data = array(
+                        'request_id' => $giftToUpdate->request_id,
+                         'author_id' => $currentUser,
+                          'reply_id' => $replyID,
+                      'gift_text' => $giftToUpdate->gift_text,
+                    'gift_status' => $giftStatus,
+                   );
+
+                    // Now we can do the insert. Success here will have the
+                    // total number of rows affected, which hopefully will be 1
+                    $success = $wpdb->insert( $table, $data);
+
+                    if($success) {
+                        // Insert successful!
+                        $response->success = true;
+                        $response->new_id = $wpdb->insert_id;
+
+                    } else {
+                        // Error inserting
+                        $response->success = false;
+                        $response->errmsg = 'Error occurred during insert';
+                    }
+
+                } else {
+                    // User is not valid or not logged in
+                    $response->success = false;
+                    $response->errmsg = 'Invalid user - are you logged in?';
+                }
+            }
+          } else {
+            // We didn't get the post body
+            $response->success = false;
+            $response->errmsg = "Failed to get post body";
+          }
+
+          return($response);
 
       }
 
