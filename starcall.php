@@ -898,16 +898,16 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
                 $sql = "SELECT * FROM wpsc_rq_gifts " .
                        "WHERE id = " . $giftToUpdate->id;
 
-                $existinggift = $wpdb->get_row($sql);
+                $existingGift = $wpdb->get_row($sql);
 
-                if ($existinggift) {
+                if ($existingGift) {
                     // Found it. Make sure the user is allowed to do this
                     // Must be mod, admin, or the owner of the gift
                     $currentUser = get_current_user_id();
 
                     if (current_user_can('moderator') ||
                         current_user_can('administrator') ||
-                        $currentUser == $existinggift->user) {
+                        $currentUser == $existingGift->user) {
                         // Do the update
 
                         // We're using the wpdb object for database access,
@@ -985,8 +985,8 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
                         'request_id' => $giftToUpdate->request_id,
                          'author_id' => $currentUser,
                           'reply_id' => $replyID,
-                      'gift_text' => $giftToUpdate->gift_text,
-                    'gift_status' => $giftStatus,
+                        'gift_text' => $giftToUpdate->gift_text,
+                      'gift_status' => $giftStatus,
                    );
 
                     // Now we can do the insert. Success here will have the
@@ -1101,5 +1101,18 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
   }
 
   add_action( 'wp_enqueue_scripts', 'starcall_enqueue_scripts' );
+
+  //----------------------------------------------------------------------------
+  // Handlers for form actions
+  //----------------------------------------------------------------------------
+
+  add_action( 'admin_post_submit_gift', 'submit_gift');
+
+  function submit_gift() {
+
+      echo("I am doin a function");
+
+      return;
+  }
 
   ?>
