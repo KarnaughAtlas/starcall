@@ -174,6 +174,9 @@ function loadRequest () {
             editRequest();
         });
 
+        //Set the hidden input requestId so we can pass it to the gift methods
+        jQuery('input[name="requestId"]').val(thisRequest.request_id);
+
     } catch(err) {
         // Otherwise display an error message and bounce
         console.log(err);
