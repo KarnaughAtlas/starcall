@@ -1,4 +1,4 @@
-    //------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // File name: request.js
 // Description: Collection of scripts used when displaying a single request
 // Author: JSHayford
@@ -154,9 +154,19 @@ function loadRequest () {
         document.title = thisRequest.title + ' by ' + thisRequest.user_login;
         // Put stuff in the document. Do more with this later
 
-        var markup = '<h1>'+ thisRequest.title + '</h1>';
+        var markup = '<h1>';
+        if(thisRequest.nsfw == true) {
+            markup += '<span class="nsfwtag">[18+] </span>';
+        }
 
-        markup += '<strong>Requested by: ' + thisRequest.user_login + '</strong><br /><br />';
+        markup += thisRequest.title + '</h1>';
+        if (thisRequest.fan_art == '1') {
+            markup += '<strong>Fan art ';
+        } else {
+            markup += '<strong>Original ';
+        }
+
+        markup += 'request by ' + thisRequest.user_login + '</strong><br /><br />';
 
         if  (thisRequest.user_authorized) {
             markup += '<button class="editbutton"> Edit request </button><br /><br />';
@@ -196,14 +206,34 @@ function editRequest() {
     updateRequest = Object.assign({}, thisRequest);
     jQuery('#requestarea').empty();
 
-    markup = '<h1>'+ updateRequest.title + '</h1><br>' +
+    markup = '<strong>Title</strong><br>' +
+             '<input type="text" class="edittitle"></input>' +
              '<strong>Requested by: ' + updateRequest.user_login + '</strong><br><br>' +
+             '<strong>NSFW: <strong><input type="checkbox" class="editnsfw" value="NSFW"><br /><br />' +
+             '<input type="radio" name="editfanart" class="editfanart" value ="fanart" id="editfanart_yes">' +
+             '<label for="editfanart_yes">Fan art </label>' +
+             '<input type="radio" name="editfanart" class="editfanart" value ="original" id="editfanart_no">' +
+             '<label for="editfanart_no">Original</label><br /><br />' +
              '<strong>Description</strong><br>' +
              '<textarea class="editdescription"></textarea><br><br>' +
              '<button class="saveButton">Save</button><button class="cancelButton">Cancel</button>';
 
     jQuery('#requestarea').append(markup);
     jQuery('.editdescription').html(updateRequest.description);
+    jQuery('.edittitle').val(updateRequest.title);
+
+    if(updateRequest.nsfw == true) {
+        jQuery('.editnsfw').prop('checked', true);
+    } else {
+        jQuery('.editnsfw').prop('checked', false);
+    }
+
+    if (updateRequest.fan_art == '1') {
+        jQuery('#editfanart_yes').prop('checked',true);
+    } else {
+        jQuery('#editfanart_no').prop('checked',true);
+    }
+
 
     // Add handlers to save/cancel buttons
     jQuery('.saveButton').click(function(){
@@ -217,11 +247,33 @@ function editRequest() {
 
 function saveRequest(updateRequest) {
 
+    console.log(jQuery('input[name=editfanart]:checked').val());
+
     updateRequest.description = jQuery('.editdescription').val();
+    updateRequest.title = jQuery('.edittitle').val();
+    if(jQuery('.editnsfw').is(':checked')) {
+        updateRequest.nsfw = '1';
+    } else {
+        updateRequest.nsfw = '0';
+    }
+
+    if (jQuery('input[name=editfanart]:checked').val() == 'original') {
+        updateRequest.fan_art = '0';
+    } else {
+        updateRequest.fan_art = '1';
+    }
 
     if(JSON.stringify(updateRequest) == JSON.stringify(thisRequest)) {
         //User made no changes
-        alert("There are no changes to save!")
+        alert("There are no changes to save!");
+
+    } else if (updateRequest.description == '') {
+        alert("Description can not be blank!");
+        jQuery('.editdescription').val(thisRequest.description);
+
+    } else if (updateRequest.title == '') {
+        alert("Title can not be blank!");
+        jQuery('.edittitle').val(thisRequest.title);
 
     } else {
         // Do the update

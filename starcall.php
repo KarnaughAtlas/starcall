@@ -315,12 +315,13 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
                 } elseif ($params['nsfw'] == "only") {
                     // Include only NSFW results
                     $filters[] =  'nsfw = 1';
+                }
 
-                } else {
+            } else {
                     // Default is omit NSFW results
                     $filters[] =  'nsfw = 0';
-                }
-          }
+            }
+
 
           //-------------------------------------------------------------------------
           // Status flag --
@@ -1169,15 +1170,27 @@ function submit_gift() {
     // Take the file and attach it to the gallery post with wp_insert_attachment()
     // Also need to do the foogallery_attachments meta
 
-
   // These files need to be included as dependencies when on the front end.
   require_once( ABSPATH . 'wp-admin/includes/image.php' );
   require_once( ABSPATH . 'wp-admin/includes/file.php' );
   require_once( ABSPATH . 'wp-admin/includes/media.php' );
 
   // Let WordPress handle the upload.
-  // Remember, 'my_image_upload' is the name of our file input in our form above.
-  $attachment_id = media_handle_upload( 'fileToUpload', $galleryPostId );
+  // Build the attachment post data - we need to have the title and author in the caption
+
+  // Load user data into current_user
+  $currentUser = wp_get_current_user();
+
+  $giftTitle = 'Gift by ' . $currentUser->user_login;
+  $giftCaption = $_POST['giftCaption'];
+
+  $postArr = array(
+       'post_title' => $giftTitle,
+       'post_excerpt' => $giftCaption
+  );
+
+  $attachment_id = media_handle_upload( 'fileToUpload', $galleryPostId, $postArr );
+
 
   if ( is_wp_error( $attachment_id ) ) {
       echo 'It broke';

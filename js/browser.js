@@ -29,17 +29,26 @@ jQuery('#requestdesc').on('keypress', function (e) {
 
 jQuery('#searchbutton').on( 'click', function ( e )  {
  e.preventDefault();
- jQuery.when(getRequests(jQuery('#requestdesc').val())).done(function(e) {
+ jQuery.when(getRequests(jQuery('#requestdesc').val(),jQuery('#includensfw').prop('checked'))).done(function(e) {
      makePage(1);
  });
 } );
 
-function getRequests (filter) {
+function getRequests (desc, nsfw) {
 
-   if (filter) {
-       var endpoint = '/wp-json/starcall/v1/requests/' + '?desc=' + filter;
-   } else {
-       var endpoint = '/wp-json/starcall/v1/requests/'
+   var endpoint = '/wp-json/starcall/v1/requests/';
+   var filters = [];
+
+   if (desc) {
+       filters.push('desc=' + desc);
+   }
+
+   if (nsfw == 1) {
+       filters.push('nsfw=yes');
+   }
+
+   if (filters.length > 0) {
+       endpoint += '?' + filters.join('&');
    }
 
    return jQuery.ajax( {
@@ -79,9 +88,13 @@ function makePage (page) {
 
             markup = "<tr class='requestrow'><td>" +
                                        requests[i].user_login + "</td>" +
-                     "<td class='title'>" + requests[i].title + "</td>" +
+                     "<td class='title'>";
+            if (requests[i].nsfw == true) {
+                markup += '<span class="nsfwtag">[18+] </span>'
+            }
+            markup += requests[i].title + "</td>" +
                      "<td class='description'>" +
-                                 requests[i].description.slice(0,30) + "</td>" +
+                                 requests[i].description.slice(0,80) + " ...</td>" +
                      "<td class='create_date'>" +
                                              requests[i].create_date + "</td>" +
                      "<td class='request_id' style='display:none'>" +
