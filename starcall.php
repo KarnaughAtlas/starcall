@@ -62,7 +62,6 @@ function make_comment_array($params,$currentUser,$userIsAdmin) {
  }
 
  // Query the database and return the response
- write_log($sql);
  $comments = $wpdb->get_results($sql);
 
  foreach ($comments as $comment) {
@@ -126,7 +125,6 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
  }
 
  // Query the database and return the response
- write_log($sql);
  $gifts = $wpdb->get_results($sql);
 
  foreach ($gifts as $gift) {
@@ -735,7 +733,6 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
     $commentToUpdate = json_decode($request -> get_body());
 
     if($commentToUpdate !== null) {
-        write_log($commentToUpdate);
         // Successfully got the post body
       if (isset($commentToUpdate->comment_id)) {
           // We're updating an existing comment
@@ -808,7 +805,6 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
           }
       } else {
           // We're submitting a new comment. Do we have a valid user?
-          write_log("We're in the new comment block");
           if (current_user_can('read')) {
               // Insert comment
               // We're using the wpdb object for database access,
@@ -842,6 +838,43 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
                   // Insert successful!
                   $response->success = true;
                   $response->new_id = $wpdb->insert_id;
+
+                  // Email the appropriate user
+                  $commentAuthor = get_userdata($currentUser);
+                  $requestID = get_comment_request_page($wpdb->insert_id);
+                  $url = 'https://starcall.sylessae.com/request/?request_id=' . $requestID;
+
+                  if ($replyID != 0) {
+                      // This is a reply, so notify the original comment author
+                      $sql = "SELECT * FROM wpsc_rq_comments " .
+                             "WHERE reply_id = " . $replyID;
+
+                      $theComment = $wpdb->get_row($sql);
+                      $notifyUser = get_userdata($theComment->author_id);
+                      $subject = $commentAuthor->user_login . " has replied to your comment.";
+                      $message = "Dear " . $notifyUser->user_login . ",\r\n\r\n";
+                      $message .= $commentAuthor->user_login . " has replied to your comment.";
+                      $message .= "\r\n\r\nYou can view the original request here: " . $url;
+
+                  } else {
+                      // This is a top-level comment, notify the requester
+                      $sql = "SELECT * FROM wpsc_rq_requests " .
+                             "WHERE request_id = " . $commentToUpdate->request_id;
+
+                      $theRequest = $wpdb->get_row($sql);
+                      $notifyUser = get_userdata($theRequest->user_id);
+
+                      $subject = $commentAuthor->user_login . " has commented on your request.";
+                      $message = "Dear " . $notifyUser->user_login . ",\r\n\r\n";
+                      $message .= $commentAuthor->user_login . " has commented on your request.";
+                      $message .= "\r\n\r\nYou can view the request here: " . $url;
+                  }
+
+                  $email = $notifyUser->user_email;
+                  $headers = "From: noreply@sylessae.com";
+
+                  $message .= "\r\n\r\nDo not reply to this email. This message was automatically generated and this inbox is unmonitored.";
+                  mail($email,$subject,$message,$headers);
 
               } else {
                   // Error inserting
@@ -1301,6 +1334,24 @@ function submit_gift() {
 
         // User is not logged in
         echo("You must be logged in to do that.");
+    }
+}
+
+function get_comment_request_page($commentID) {
+    // This function gets the request page that a comment is on; it has to
+    // recurse to find it since replies don't list the request ID to prevent
+    // them from also appearing on the top level
+    global $wpdb;
+
+    $sql = "SELECT * FROM wpsc_rq_comments " .
+           "WHERE comment_id = " . $commentID;
+    $thisComment = $wpdb->get_row($sql);
+    if($thisComment->request_id != 0) {
+        // found it, return
+        return($thisComment->request_id);
+    } else {
+        // we must go deeper
+        return(get_comment_request_page($thisComment->reply_id));
     }
 }
 

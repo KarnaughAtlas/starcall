@@ -25,12 +25,8 @@ jQuery( document ).ready(function() {
         jQuery('.modalWindow').hide();
     });
 
-    jQuery('#shownewgiftarea').click(function(){
-        jQuery('#newgift').toggle();
-    })
-
     jQuery('#showNewGiftWindowButton').click(function() {
-        jQuery('#newGiftWindow').show();
+        jQuery('#submitGiftWindow').show();
     });
 
     // Admin functions --------------------------------------------------
@@ -43,7 +39,7 @@ jQuery( document ).ready(function() {
     jQuery('#adminSelectDenyReason').change(function() {
 
         if (jQuery('#adminSelectDenyReason').val() == 'incomplete'){
-            jQuery('#adminWindowDenyExplanation').text('The application is missing critical information to allow an artist to fulfill the request.');
+            jQuery('#adminWindowDenyExplanation').text('The application is missing critical information necessary for an artist to fulfill the request.');
         } else if (jQuery('#adminSelectDenyReason').val() == 'socialmedia'){
             jQuery('#adminWindowDenyExplanation').text('The requester did not share the project on social media, or did not provide a direct link to their post.');
         } else if (jQuery('#adminSelectDenyReason').val() == 'inappropriate'){
@@ -63,6 +59,17 @@ jQuery( document ).ready(function() {
 
     jQuery('#adminChangeStatusButton').click(function() {
         jQuery('#adminChangeStatusWindow').show();
+    });
+
+    jQuery('#adminSelectStatus').change(function() {
+
+        if (jQuery('#adminSelectStatus').val() == 'approved'){
+            jQuery('#adminWindowStatusExplanation').text('Approved requests are visible to all users.');
+        } else if (jQuery('#adminSelectStatus').val() == 'denied'){
+            jQuery('#adminWindowStatusExplanation').text('Denied requests are only visible to admins and the requesting user. The user will be notified of this change.');
+        } else if (jQuery('#adminSelectStatus').val() == 'deleted'){
+            jQuery('#adminWindowStatusExplanation').text('Deleted requests are only visible to admins. CAUTION: deleted requests are purged weekly and are irrecoverable.');
+        }
     });
 
     // end admin functions ------------------------------------------------

@@ -123,8 +123,8 @@ function doAdminStuff ($request) {
                 <span id="admintoolslabel"><strong>Admin tools</strong></span>
                 <br />
                 <section id="adminbuttons">
-                    <button id="adminchangestatus">Change status</button>
-                    <button id="admincontact">Contact requester</button>
+                    <button id="adminChangeStatusButton">Change status</button>
+                    <button id="adminContactButton">Contact requester</button>
                 </section>
             </div>
             <div id="adminrequeststatus">
@@ -145,8 +145,8 @@ function doAdminStuff ($request) {
         <span id="admintoolslabel"><strong>Admin tools</strong></span>
         <br />
         <section id="adminbuttons">
-            <button id="adminchangestatus">Change status</button>
-            <button id="admincontact">Contact requester</button>
+            <button id="adminChangeStatusButton">Change status</button>
+            <button id="adminContactButtont">Contact requester</button>
         </section>
         <div id="adminrequeststatus">
             <h3>---- Request status: denied ----</h3>
@@ -165,8 +165,8 @@ function doAdminStuff ($request) {
         <div id="admintools">
             <span id="admintoolslabel"><strong>Admin tools</strong></span>
             <section id="adminbuttons">
-                <button id="adminchangestatus">Change status</button>
-                <button id="admindeleterequest">Permanently delete</button>
+                <button id="adminChangeStatusButton">Change status</button>
+                <button id="adminDeleteRequestButton">Permanently delete</button>
             </section>
             <h3>---- Request status: deleted ----</h3>
             <strong> This request has been deleted and is only visible to administrators. </strong>
@@ -255,25 +255,25 @@ function get_request() {
 <div id="adminChangeStatusWindow" class="modalWindow">
   <div class="modal-content">
     <span class="windowClose">&times;</span>
-
-        <p><strong>Select reason for denial:</strong></p>
+    <section id="adminWindowSelectReason">
+        <p><strong>Change request status:</strong></p>
         <br />
-        <select>
-            <option value="incomplete">Incomplete request</option>
-            <option value="socialmedia">Did not share on social media</option>
-            <option value="inappropriate">Inappropriate content</option>
-            <option value="spam">Spam</option>
+        <select id="adminSelectStatus" autocomplete="off">
+            <option disabled selected value=""> -- Select a status -- </option>
+            <option value="approved">Approved</option>
+            <option value="denied">Denied</option>
+            <option value="deleted">Deleted</option>
         </select>
+        <br /><br />
+        <button id="adminWindowChangeStatusButton"> Update status </button>
     </section>
     <section id="adminWindowText">
-        <p id="adminWindowDenyExplanation"></p>
+        <p id="adminWindowStatusExplanation">Select a status</p>
     </section>
-    <br /><br />
-    <button id="adminWindowDenyRequestButton"> Deny request </button>
   </div>
 </div>
 
-<!-- Submit gift -->
+<!-- Submit gift window-->
 <div id="submitGiftWindow" class="modalWindow">
   <div class="modal-content">
     <span class="windowClose">&times;</span>
@@ -284,14 +284,13 @@ function get_request() {
         <strong>Note to requester (This will only be seen by the requester!):</strong><br />
         <input type="textarea" name="giftNote" id="giftCaption">
         <br />
-        <input type="submit" value="Submit gift" name="submitGift"></input>
         <strong>Select image to upload:</strong>
         <input type="file" name="fileToUpload" id="fileToUpload"></input>
         <br />
+        <br />
+        <input type="submit" value="Submit gift" name="submitGift"></input>
         <input type="hidden" name="action" value="submit_gift"></input>
         <input type="hidden" name="requestId" value=""></input>
     </form>
-    <br /><br />
-    <button id="submitGiftWindowSubmitButton"> Submit gift </button>
   </div>
 </div>
