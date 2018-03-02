@@ -282,7 +282,7 @@ function get_request() {
         <input type="textarea" name="giftCaption" id="giftCaption">
         <br />
         <strong>Note to requester (This will only be seen by the requester!):</strong><br />
-        <input type="textarea" name="giftNote" id="giftCaption">
+        <input type="textarea" name="giftNote" id="giftNote">
         <br />
         <strong>Select image to upload:</strong>
         <input type="file" name="fileToUpload" id="fileToUpload"></input>

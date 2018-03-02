@@ -72,6 +72,10 @@ jQuery( document ).ready(function() {
         }
     });
 
+    jQuery('#adminWindowChangeStatusButton').click(function(){
+        adminChangeRequestStatus();
+    });
+
     // end admin functions ------------------------------------------------
 
     jQuery.when(getRequest()).done(function(e) {
@@ -512,13 +516,24 @@ function adminApproveRequest() {
     updateRequest = Object.assign({}, thisRequest);
     updateRequest.status = 'approved';
     jQuery.when(ajaxUpdateRequest(updateRequest)).done(function(e) {
-        //location.reload();
+        location.reload();
     });
 
 }
 
 function adminChangeRequestStatus() {
-    alert('GET READY TO CHANGE THE STATUS BOI');
+    updateRequest = Object.assign({}, thisRequest);
+
+    if (jQuery('#adminSelectStatus').val() != '') {
+        updateRequest.status = jQuery('#adminSelectStatus').val();
+        jQuery.when(ajaxUpdateRequest(updateRequest)).done(function(e) {
+            location.reload();
+        });
+    } else {
+        // Invalid status
+        alert("Select a valid status");
+    }
+
 }
 
 function ajaxUpdateRequest(updateRequest) {

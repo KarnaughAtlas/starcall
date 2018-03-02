@@ -138,7 +138,6 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
          // No touchy
          $gift->user_authorized = false;
      }
-
   }
 
  return($gifts);
@@ -473,9 +472,12 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
                      );
 
                      // Request to update status - only moderators and administrators
+                     // Users can delete their own requests
                      if ($requestToUpdate->status != $existingRequest->status) {
-                         if (current_user_can ('administrator') || current_user_can('moderator')) {
+                         if (current_user_can ('administrator') || current_user_can('moderator') ||
+                            (get_current_user_id() == $requestToUpdate->user_id && $requestToUpate->status == 'deleted')) {
                              $data += array('status' => $requestToUpdate->status);
+
                          } else {
                              // Something fishy is going on here, kick them out
                              $response->success = false;
@@ -509,7 +511,6 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
                                  $subject = "Your request has been approved.";
                                  $message .= "Your request has been approved! You can view it at https://starcall.sylessae.com/request?request_id=" . $requestToUpdate->request_id;
 
-
                              } elseif ($requestToUpdate->status == 'denied') {
                                  // The request was denied - we should have a reason from the browser
                                  $reason = $requestToUpdate->status_reason;
@@ -517,21 +518,26 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
                                  $subject = "Your request has been denied.";
 
                                  if ($reason == 'incomplete') {
-                                     $message .= "Test incomplete message";
+                                     $message .= "Your request has been denied because it is missing critical information necessary for an artist to fulfill it. Please review your request and make sure there is adequate informmation.";
+                                     $message .= "\r\n\r\nThe moderation team will be notified when you edit your request.";
 
                                  } elseif ($reason == 'socialmedia') {
-                                     $message .= "Test social media message";
+                                     $message .= "Your request has been denied because you did not share the project, or did not provide a direct link to your post.\r\n\r\n
+                                                  We're asking everyone to share the Starcall project on their social media each time they submit a request. This will help the project grow by attracting more people to make requests, and more talented artists to fulfill them. We need a direct link to the post where you've shared Starcall.\r\n\r\n
+                                                  All you need to do is reply to this email with the link and the moderation team will be notified.";
+                                     $message .= "\r\n\r\nThe moderation team will be notified when you edit your request.";
 
                                  } elseif ($reason = 'inappropriate') {
-                                     $message .= "Test inappropriate message";
+                                     $message .= "Your request has been denied because it violates the Project Starcall terms of service and/or rules for submission. Please review the rules and edit your request to remove the material in question.";
+                                     $message .= "\r\n\r\nThe moderation team will be notified when you edit your request.";
 
                                  } else {
-                                     $message .= "Test no reason message";
+                                     $message .= "Please contact the moderation team for details.";
                                  }
                              }
 
                              // Add signature
-                             $message .= ".\r\n\r\nSincerely,\r\n\r\nThe Starcall Admin Team";
+                             $message .= "\r\n\r\nSincerely,\r\n\r\nThe Starcall Moderation Team";
 
                              mail($email,$subject,$message,$headers);
 
@@ -539,7 +545,7 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
 
                              $email = "moderators@sylessae.com";
                              $headers = "From: noreply@sylessae.com";
-                             $subject = "[System message]Request " . $requestToUpdate->request_id . " has been approved.";
+                             $subject = "[System message]Request '" . $requestToUpdate->title . "' has been " . $requestToUpdate->status;
                              $message = "https://starcall.sylessae.com/request?request_id=" . $requestToUpdate->request_id;
                              $message .= "\r\n\r\nDo not reply to this email. This message was automatically generated and this inbox is unmonitored.";
                              mail($email,$subject,$message,$headers);
@@ -606,7 +612,7 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
                       // Notify admins that the request is awaiting approval
                       $email = "moderators@sylessae.com";
                       $headers = "From: noreply@sylessae.com";
-                      $subject = "[System message]Request " . $wpdb->insert_id . " is waiting for approval.";
+                      $subject = "[System message]Request '" . $requestToUpdate->title . "' is waiting for approval.";
                       $message = "https://starcall.sylessae.com/request?request_id=" . $wpdb->insert_id;
                       $message .= "\r\n\r\nDo not reply to this email. This message was automatically generated and this inbox is unmonitored.";
                       mail($email,$subject,$message,$headers);
@@ -1223,10 +1229,13 @@ function submit_gift() {
     $templateGalleryId = 2365;
 
     // Note that this is all highly dependant on the FooGallery plugin
+    // Get the post data
+    $giftCaption = $_POST['giftCaption'];
+    $giftNote = $_POST['giftNote'];
+    $requestID = $_POST['requestId'];
 
     // Does the gallery exist? Search for a post with the appropriate title
-    $requestID = $_POST['requestId'];
-    $galleryTitle = "gift_gallery_" . $requestID;
+        $galleryTitle = "gift_gallery_" . $requestID;
 
     // Build the query
 
@@ -1288,7 +1297,6 @@ function submit_gift() {
   if($giftUser) {
       // Successfully got the user
       $giftTitle = 'Gift by ' . $giftUser->user_login;
-      $giftCaption = $_POST['giftCaption'];
 
       $postArr = array(
            'post_title' => $giftTitle,
@@ -1321,6 +1329,11 @@ function submit_gift() {
         $subject = $giftUser->user_login . " has given you a gift!";
         $message = "\r\n\r\nDear " . $requestingUserData->user_login . ",\r\n\r\n";
         $message .= $giftUser->user_login . " has uploaded a gift to your request titled '" . $thisRequest->title . ".'";
+
+        if($giftCaption != '') {
+            $message.="\r\n\r\n" . $giftUser->user_login . " said: '" . $giftCaption . "'";
+        }
+
         $message .= "\r\n\r\nYou can view the request here: " . $url;
         $message .= "\r\n\r\nDo not reply to this email. This message was automatically generated and this inbox is unmonitored.";
         mail($email,$subject,$message,$headers);
