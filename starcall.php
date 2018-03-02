@@ -445,6 +445,7 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
               $existingRequest = $wpdb->get_row($sql);
 
               if ($existingRequest) {
+
                   // Found it. Make sure the user is allowed to do this
                   // Must be mod, admin, or the owner of the request
                   $currentUser = get_current_user_id();
@@ -470,9 +471,20 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
                         'fan_art' => $requestToUpdate->fan_art,
                 'reference_links' => $requestToUpdate->reference_links,
                     'description' => $requestToUpdate->description,
-                         'status' => $requestToUpdate->status,
                       'edit_user' => $currentUser
                      );
+
+                     // Request to update status - only moderators and administrators
+                     if ($requestToUpdate->status != $existingRequest->status) {
+                         if (current_user_can ('administrator') || current_user_can('moderator')) {
+                             $data += array('status' => $requestToUpdate->status);
+                         } else {
+                             // Something fishy is going on here, kick them out
+                             $response->success = false;
+                             $response->errmsg = 'Invalid request - nice try';
+                             return($response);
+                         }
+                     }
 
                      // Build the where array
                      $where = array('request_id' => $requestToUpdate->request_id);
@@ -485,6 +497,56 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
                          // We did it, guys
                          $response->success = true;
                          $response->rows_updaded = $success;
+
+                         if($requestToUpdate->status != $existingRequest->status) {
+                             // This is a status change from the admin toolbox
+                             // Send mail with status update and message
+                             $userData = get_userdata($existingRequest->user_id);
+                             $email = $userData->user_email;
+                             $message = "Dear " . $userData->user_login . ",\r\n\r\n";
+                             $headers = "From: moderators@sylessae.com";
+
+                             if ($requestToUpdate->status == 'approved') {
+                                 // Request was approved, just send mail
+                                 $subject = "Your request has been approved.";
+                                 $message .= "Your request has been approved! You can view it at https://starcall.sylessae.com/request?request_id=" . $requestToUpdate->request_id;
+
+
+                             } elseif ($requestToUpdate->status == 'denied') {
+                                 // The request was denied - we should have a reason from the browser
+                                 $reason = $requestToUpdate->status_reason;
+
+                                 $subject = "Your request has been denied.";
+
+                                 if ($reason == 'incomplete') {
+                                     $message .= "Test incomplete message";
+
+                                 } elseif ($reason == 'socialmedia') {
+                                     $message .= "Test social media message";
+
+                                 } elseif ($reason = 'inappropriate') {
+                                     $message .= "Test inappropriate message";
+
+                                 } else {
+                                     $message .= "Test no reason message";
+                                 }
+                             }
+
+                             // Add signature
+                             $message .= ".\r\n\r\nSincerely,\r\n\r\nThe Starcall Admin Team";
+
+                             mail($email,$subject,$message,$headers);
+
+                             // Send confirmation to admin team
+
+                             $email = "moderators@sylessae.com";
+                             $headers = "From: noreply@sylessae.com";
+                             $subject = "[System message]Request " . $requestToUpdate->request_id . " has been approved.";
+                             $message = "https://starcall.sylessae.com/request?request_id=" . $requestToUpdate->request_id;
+                             $message .= "\r\n\r\nDo not reply to this email. This message was automatically generated and this inbox is unmonitored.";
+                             mail($email,$subject,$message,$headers);
+                         }
+
 
                      } else {
                          // Update failed
@@ -542,6 +604,14 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
                       // Insert successful!
                       $response->success = true;
                       $response->new_id = $wpdb->insert_id;
+
+                      // Notify admins that the request is awaiting approval
+                      $email = "moderators@sylessae.com";
+                      $headers = "From: noreply@sylessae.com";
+                      $subject = "[System message]Request " . $wpdb->insert_id . " is waiting for approval.";
+                      $message = "https://starcall.sylessae.com/request?request_id=" . $wpdb->insert_id;
+                      $message .= "\r\n\r\nDo not reply to this email. This message was automatically generated and this inbox is unmonitored.";
+                      mail($email,$subject,$message,$headers);
 
                   } else {
                       // Error inserting
@@ -1122,7 +1192,8 @@ function submit_gift() {
     // Note that this is all highly dependant on the FooGallery plugin
 
     // Does the gallery exist? Search for a post with the appropriate title
-    $galleryTitle = "gift_gallery_" . $_POST['requestId'];
+    $requestID = $_POST['requestId'];
+    $galleryTitle = "gift_gallery_" . $requestID;
 
     // Build the query
 
@@ -1179,34 +1250,58 @@ function submit_gift() {
   // Build the attachment post data - we need to have the title and author in the caption
 
   // Load user data into current_user
-  $currentUser = wp_get_current_user();
+  $giftUser = wp_get_current_user();
 
-  $giftTitle = 'Gift by ' . $currentUser->user_login;
-  $giftCaption = $_POST['giftCaption'];
+  if($giftUser) {
+      // Successfully got the user
+      $giftTitle = 'Gift by ' . $giftUser->user_login;
+      $giftCaption = $_POST['giftCaption'];
 
-  $postArr = array(
-       'post_title' => $giftTitle,
-       'post_excerpt' => $giftCaption
-  );
+      $postArr = array(
+           'post_title' => $giftTitle,
+           'post_excerpt' => $giftCaption
+      );
 
-  $attachment_id = media_handle_upload( 'fileToUpload', $galleryPostId, $postArr );
+      $attachment_id = media_handle_upload( 'fileToUpload', $galleryPostId, $postArr );
 
+      if ( is_wp_error( $attachment_id ) ) {
+          echo 'It broke';
+      } else {
+          echo 'Success';
+          // Now do the foogallery_attachments meta
+          $galleryAttachments = get_post_meta($galleryPostId, 'foogallery_attachments', true);
+          $galleryAttachments[] = $attachment_id;
+          update_post_meta($galleryPostId, 'foogallery_attachments', $galleryAttachments);
+      }
 
-  if ( is_wp_error( $attachment_id ) ) {
-      echo 'It broke';
-  } else {
-      echo 'Success';
-      // Now do the foogallery_attachments meta
-      $galleryAttachments = get_post_meta($galleryPostId, 'foogallery_attachments', true);
-      $galleryAttachments[] = $attachment_id;
-      update_post_meta($galleryPostId, 'foogallery_attachments', $galleryAttachments);
-  }
+        // Email the requester to let them know they have a new gift
+        $sql = "SELECT * FROM wpsc_rq_requests " .
+               "WHERE request_id = " . $requestID;
 
-    $url = 'https://starcall.sylessae.com/request/?request_id=' . $_POST['requestId'];
-    wp_redirect( $url );
-    exit;
+        $thisRequest = $wpdb->get_row($sql);
+        $requestingUserData = get_userdata($thisRequest->user_id);
 
-    return;
+        $url = 'https://starcall.sylessae.com/request/?request_id=' . $thisRequest->request_id;
+
+        $email = $requestingUserData->user_email;
+        $headers = "From: noreply@sylessae.com";
+        $subject = $giftUser->user_login . " has given you a gift!";
+        $message = "\r\n\r\nDear " . $requestingUserData->user_login . ",\r\n\r\n";
+        $message .= $giftUser->user_login . " has uploaded a gift to your request titled '" . $thisRequest->title . ".'";
+        $message .= "\r\n\r\nYou can view the request here: " . $url;
+        $message .= "\r\n\r\nDo not reply to this email. This message was automatically generated and this inbox is unmonitored.";
+        mail($email,$subject,$message,$headers);
+
+        wp_redirect( $url );
+        exit;
+
+        return;
+
+    } else {
+
+        // User is not logged in
+        echo("You must be logged in to do that.");
+    }
 }
 
 ?>

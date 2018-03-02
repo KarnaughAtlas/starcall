@@ -21,7 +21,7 @@ jQuery( document ).ready(function() {
 jQuery('#requestdesc').on('keypress', function (e) {
    var code = e.keyCode || e.which;
    if (code==13) {
-       jQuery.when(getRequests(jQuery(this).val())).done(function(e) {
+       jQuery.when(getRequests(jQuery(this).val(),jQuery('#includensfw').prop('checked'))).done(function(e) {
            makePage(1);
        });
    }
@@ -86,16 +86,16 @@ function makePage (page) {
              i < (page * requests_per_page) &&
              i < requests.length; i++) {
 
-            markup = "<tr class='requestrow'><td>" +
+            markup = "<tr class='requestrow'><td class='requester'>" +
                                        requests[i].user_login + "</td>" +
                      "<td class='title'>";
             if (requests[i].nsfw == true) {
                 markup += '<span class="nsfwtag">[18+] </span>'
             }
-            markup += requests[i].title + "</td>" +
+            markup += requests[i].title.slice(0,30) + "</td>" +
                      "<td class='description'>" +
-                                 requests[i].description.slice(0,80) + " ...</td>" +
-                     "<td class='create_date'>" +
+                                 requests[i].description.slice(0,60) + " ...</td>" +
+                     "<td class='br_create_date'>" +
                                              requests[i].create_date + "</td>" +
                      "<td class='request_id' style='display:none'>" +
                      requests[i].request_id + "</td></tr>";

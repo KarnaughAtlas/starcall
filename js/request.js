@@ -12,6 +12,61 @@ var editing = false;
 
 
 jQuery( document ).ready(function() {
+
+    // Close windows if the user clicks outside of them
+    window.onclick = function(event) {
+        if (jQuery(event.target).hasClass('modalWindow')) {
+            jQuery('.modalWindow').hide();
+        }
+    }
+
+    // Modal window close button
+    jQuery('.windowClose').click(function() {
+        jQuery('.modalWindow').hide();
+    });
+
+    jQuery('#shownewgiftarea').click(function(){
+        jQuery('#newgift').toggle();
+    })
+
+    jQuery('#showNewGiftWindowButton').click(function() {
+        jQuery('#newGiftWindow').show();
+    });
+
+    // Admin functions --------------------------------------------------
+
+    // Deny request window
+    jQuery('#adminDenyRequestButton').click(function() {
+        jQuery('#adminDenyRequestWindow').show();
+    });
+
+    jQuery('#adminSelectDenyReason').change(function() {
+
+        if (jQuery('#adminSelectDenyReason').val() == 'incomplete'){
+            jQuery('#adminWindowDenyExplanation').text('The application is missing critical information to allow an artist to fulfill the request.');
+        } else if (jQuery('#adminSelectDenyReason').val() == 'socialmedia'){
+            jQuery('#adminWindowDenyExplanation').text('The requester did not share the project on social media, or did not provide a direct link to their post.');
+        } else if (jQuery('#adminSelectDenyReason').val() == 'inappropriate'){
+            jQuery('#adminWindowDenyExplanation').text('The request contains sexually explicit material, or other material forbidden by the Starcall terms of service.');
+        } else if (jQuery('#adminSelectDenyReason').val() == 'spam'){
+            jQuery('#adminWindowDenyExplanation').text('This is a spam request. No message will be sent to the requester.')
+        }
+    });
+
+    jQuery("#adminWindowDenyRequestButton").click(function(){
+        adminDenyRequest();
+    });
+
+    jQuery("#adminApproveRequestButton").click(function(){
+        adminApproveRequest();
+    });
+
+    jQuery('#adminChangeStatusButton').click(function() {
+        jQuery('#adminChangeStatusWindow').show();
+    });
+
+    // end admin functions ------------------------------------------------
+
     jQuery.when(getRequest()).done(function(e) {
         loadRequest();
         loadComments();
@@ -56,7 +111,6 @@ function loadComments() {
             if(!editing){
 
                 var commentDiv = e.target.parentElement.parentElement;
-                console.log(commentDiv);
                 thisCommentID = commentDiv.id.replace( /^\D+/g, '');
                 editComment(commentDiv,thisCommentID);
 
@@ -112,8 +166,6 @@ function loadComments() {
                     var commentDiv = e.target.parentElement.parentElement;
                     var text = jQuery('#replyText').val();
                     var id = commentDiv.getElementsByClassName('commentID')[0].innerHTML;
-                    console.log(text);
-                    console.log(id);
                     submitComment(text,id);
                     replying = false;
                 });
@@ -246,9 +298,6 @@ function editRequest() {
 }
 
 function saveRequest(updateRequest) {
-
-    console.log(jQuery('input[name=editfanart]:checked').val());
-
     updateRequest.description = jQuery('.editdescription').val();
     updateRequest.title = jQuery('.edittitle').val();
     if(jQuery('.editnsfw').is(':checked')) {
@@ -340,7 +389,6 @@ function submitComment (text,parent) {
 
 function editComment(commentDiv,commentID) {
     // Turn on the editing flag; we can only edit one at a time
-    console.log(commentDiv + " " + commentID);
     editing = true;
     //Save original HTML so we can put it back if user cancels
 
@@ -438,4 +486,63 @@ function getUrlParameter(name) {
 
 function setHeight(fieldId) {
     document.getElementById(fieldId).style.height = document.getElementById(fieldId).scrollHeight+'px';
+}
+
+
+// Admin functions
+
+function adminDenyRequest() {
+    updateRequest = Object.assign({}, thisRequest);
+    updateRequest.status = 'denied';
+    updateRequest.status_reason = jQuery('#adminSelectDenyReason').val();
+    jQuery.when(ajaxUpdateRequest(updateRequest)).done(function(e) {
+        //location.reload();
+    });
+}
+
+function adminApproveRequest() {
+    alert("You pressed it");
+    updateRequest = Object.assign({}, thisRequest);
+    updateRequest.status = 'approved';
+    jQuery.when(ajaxUpdateRequest(updateRequest)).done(function(e) {
+        //location.reload();
+    });
+
+}
+
+function adminChangeRequestStatus() {
+    alert('GET READY TO CHANGE THE STATUS BOI');
+}
+
+function ajaxUpdateRequest(updateRequest) {
+    var endpoint = '/wp-json/starcall/v1/requests/?request_id=' +
+    getUrlParameter("request_id");
+    return jQuery.ajax( {
+      url: endpoint,
+      method: 'POST',
+      data: JSON.stringify(updateRequest),
+      beforeSend: function ( xhr ) {
+          xhr.setRequestHeader( 'X-WP-Nonce', wpApiSettings.nonce );
+      },
+      complete: function ( response ) {
+          if (response.responseJSON.success==true) {
+              // Update succeeded
+              alert("Update successful!")
+              jQuery("#requestarea").empty();
+              // Load the request again so user sees the Changes
+              jQuery.when(getRequest()).done(function(e) {
+                  loadRequest();
+              });
+          } else {
+              // Update failed
+              alert(response.responseJSON.errmsg);
+          }
+       },
+      failure: function ( response, err ) {
+          alert ("It didn't work");
+      },
+      cache: false,
+      dataType: 'json'
+    } );
+
 }
