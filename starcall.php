@@ -532,7 +532,7 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
                              if ($requestToUpdate->status == 'approved') {
                                  // Request was approved, just send mail
                                  $subject = "Your request has been approved.";
-                                 $message .= "Your request has been approved! You can view it at https://starcall.sylessae.com/request?request_id=" . $requestToUpdate->request_id;
+                                 $message .= "Your request titled'" . $requestToUpdate->title . "'has been approved! You can view it at https://starcall.sylessae.com/request?request_id=" . $requestToUpdate->request_id;
 
                              } elseif ($requestToUpdate->status == 'denied') {
                                  // The request was denied - we should have a reason from the browser
@@ -541,22 +541,28 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
                                  $subject = "Your request has been denied.";
 
                                  if ($reason == 'incomplete') {
-                                     $message .= "Your request has been denied because it is missing critical information necessary for an artist to fulfill it. Please review your request and make sure there is adequate informmation.";
+                                     $message .= "Your request titled'" . $requestToUpdate->title . "'has been denied because it is missing critical information necessary for an artist to fulfill it. Please review your request and make sure there is adequate information.";
+                                     $message .= "\r\n\r\nYou may edit your request here: https://starcall.sylessae.com/request?request_id=" . $requestToUpdate->request_id;
                                      $message .= "\r\n\r\nThe moderation team will be notified when you edit your request.";
 
                                  } elseif ($reason == 'socialmedia') {
-                                     $message .= "Your request has been denied because you did not share the project, or did not provide a direct link to your post.\r\n\r\n
+                                     $message .= "Your request titled'" . $requestToUpdate->title . "'has been denied because you did not share the project, or did not provide a direct link to your post.\r\n\r\n
                                                   We're asking everyone to share the Starcall project on their social media each time they submit a request. This will help the project grow by attracting more people to make requests, and more talented artists to fulfill them. We need a direct link to the post where you've shared Starcall.\r\n\r\n
                                                   All you need to do is reply to this email with the link and the moderation team will be notified.";
+                                                  $message .= "\r\n\r\nYou may edit your request here: https://starcall.sylessae.com/request?request_id=" . $requestToUpdate->request_id;
                                      $message .= "\r\n\r\nThe moderation team will be notified when you edit your request.";
 
                                  } elseif ($reason = 'inappropriate') {
-                                     $message .= "Your request has been denied because it violates the Project Starcall terms of service and/or rules for submission. Please review the rules and edit your request to remove the material in question.";
+                                     $message .= "Your request titled'" . $requestToUpdate->title . "'has been denied because it violates the Project Starcall terms of service and/or rules for submission. Please review the rules and edit your request to remove the material in question.";
+                                     $message .= "\r\n\r\nYou may edit your request here: https://starcall.sylessae.com/request?request_id=" . $requestToUpdate->request_id;
                                      $message .= "\r\n\r\nThe moderation team will be notified when you edit your request.";
 
                                  } else {
                                      $message .= "Please contact the moderation team for details.";
                                  }
+                             } elseif ($requestToUpdate->status == 'deleted') {
+                                 $subject = "Your request has been deleted.";
+                                 $message .= "Your request titled'" . $requestToUpdate->title . "'has been deleted. If you believe this was done in error, please contact the moderators for assistance.";
                              }
 
                              // Add signature
