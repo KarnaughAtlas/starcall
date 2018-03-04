@@ -19,18 +19,21 @@ get_header();
     <div class="columnContainer">
         <section id="leftContainer">
             <head><title>Project Starcall - CREATE | GIVE | INSPIRE</title></head>
-            <div id="masterGallery">
-            	<?php echo do_shortcode('[foogallery id="2480"]'); ?>
+
+            <div class="frontPageHeader">
+              <div class="frontPageTitle"> LATEST GIFTS </div>
             </div>
-            <h3 class="frontPageHeader"> LATEST REQUESTS </h3>
+            <div id="latestGifts">
+                <?php echo do_shortcode('[foogallery id="2487"]'); ?>
+            </div>
+
+            <div class="frontPageHeader">
+                <div class="frontPageTitle"> LATEST REQUESTS </div>
+            </div>
             <div id="latestRequests">
                 <?php get_latest_gifts(); ?>
                 <a href="https://starcall.sylessae.com/requests">Browse all requests</a>
 
-            </div>
-            <h3 class="frontPageHeader"> LATEST GIFTS </h3>
-            <div id="latestGifts">
-                <?php echo do_shortcode('[foogallery id="2487"]'); ?>
             </div>
         </section>
 

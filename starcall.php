@@ -1175,7 +1175,7 @@ register_activation_hook( __FILE__, 'starcall_custom_roles' );
 // Enqueue scripts
 //----------------------------------------------------------------------------
 
-function starcall_enqueue_scripts () {
+function starcall_enqueue () {
 
     wp_register_script('starcall_browser',
                         plugins_url('js/browser.js', __FILE__),
@@ -1193,7 +1193,17 @@ function starcall_enqueue_scripts () {
                         plugins_url('js/comments.js', __FILE__),
                         array('jquery','wp-api'),'1.0', true);
 
-    //Enqueue common scripts for all pages
+    // CSS
+    wp_register_style(
+        'starcall-css', // handle name
+        plugins_url('css/starcall.css', __FILE__), // the URL of the stylesheet
+        array(), // an array of dependent styles
+        '1.2', // version number
+        'screen' // CSS media type
+    );
+
+    //Enqueue common scripts and CSS for all pages
+    wp_enqueue_style('starcall-css');
     wp_enqueue_script('starcall_comments');
 
     // We only want the request script on the corresponding page
@@ -1210,7 +1220,7 @@ function starcall_enqueue_scripts () {
     }
 }
 
-add_action( 'wp_enqueue_scripts', 'starcall_enqueue_scripts' );
+add_action( 'wp_enqueue_scripts', 'starcall_enqueue' );
 
 //----------------------------------------------------------------------------
 // Handlers for form actions
@@ -1416,14 +1426,5 @@ function starcall_page_templates( $page_template )
 
     return $page_template;
 }
-
-// Enqueue css
-
-function starcall_stylesheet()
-{
-    wp_enqueue_style( 'starcall.css', plugins_url( '/css/starcall.css', __FILE__ ) );
-}
-
-add_action('admin_print_styles', 'starcall_stylesheet');
 
 ?>

@@ -1,6 +1,47 @@
+/* Theme customizations */
+
+button, input[type="button"], input[type="reset"], input[type="submit"] {
+  background: #232323;
+}
+
+.main-navigation li.current-menu-item a {
+    background-color:darkgray;
+}
+
+.main-navigation a:hover {
+    background-color: darkgray;
+    color: #fff;
+}
+
+.frontPageTitle {
+  width: 22%;
+  display: block;
+  padding-left: 15px;
+  padding-right: 15px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  margin-bottom: 3px;
+  font-family: "Ubuntu", sans-serif;
+}
+
+.frontPageHeader {
+  margin: none;
+
+}
+
+.page-entry-title, .frontPageTitle {
+  background-color: #232323;
+  color: #cacaca;
+}
+.page-entry-header, .archive-page-header, .search-page-header, .frontPageHeader {
+    border-bottom: 2px solid #232323;
+    margin-bottom: 1.5em;
+}
+
 /* Front page layout */
 .columnContainer {
 	display: table;
+
 }
 
 #rightContainerHeader {
@@ -19,8 +60,8 @@
 #rightContainer {
 	display: table-cell;
 	width: 25%;
-	height: 100vh;
-	background-color: lavenderblush;
+
+	background-color: #232323h;
 }
 
 #postArchive {
@@ -30,7 +71,7 @@
 }
 
 #masterGallery {
-	padding: 15px;
+
 }
 
 #latestRequests {
@@ -81,7 +122,7 @@
 }
 
 .requestrow:hover {
-	background-color: black;
+	background-color: #232323;
 	color: white;
 	cursor: pointer;
 }
@@ -100,15 +141,12 @@
 }
 
 .thispage {
-	background-color: black;
-	color: white;
+	background-color: darkgray;
 }
 
 .thispage:hover {
 	cursor: default;
 }
-
-
 
 .editdescription,.submitdescription{
 	height: 600px;
@@ -299,4 +337,4 @@
     color: black;
     text-decoration: none;
     cursor: pointer;
-} 
+}
