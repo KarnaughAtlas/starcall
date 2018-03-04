@@ -108,7 +108,6 @@ function doAdminStuff ($request) {
         <h3>---- Request awaiting approval ----</h3>
         <strong> This needs to be approved before it is visible</strong>
         <br />
-        <br />
         <strong> Social media link: <?php echo(do_url($request->social_media)); ?>
     </div>
 </div>
@@ -133,7 +132,6 @@ function doAdminStuff ($request) {
             <div id="adminrequeststatus">
                 <h3>---- Request status: approved ----</h3>
                 <strong> This request is visible to all users </strong>
-                <br />
                 <br />
                 <strong> Social media link: <?php echo($request->social_media); ?> </strong>
             </div>
@@ -160,7 +158,6 @@ function doAdminStuff ($request) {
             <h3>---- Request status: denied ----</h3>
             <strong> Only admins and the requester can see this. </strong>
             <br />
-            <br />
             <strong> Social media link: <a href="<?php echo($request->social_media); ?>"></a> </strong>
         </div>
     </div>
@@ -173,20 +170,24 @@ function doAdminStuff ($request) {
 
 ?>
 
-        <div id="admintools">
-            <span id="admintoolslabel"><strong>Admin tools</strong></span>
-            <section id="adminbuttons">
-                <button id="adminChangeStatusButton">Change status</button>
-                <button id="adminDeleteRequestButton">Permanently delete</button>
-            </section>
-            <h3>---- Request status: deleted ----</h3>
-            <strong> This request has been deleted and is only visible to administrators. </strong>
-            <br />
-            <br />
-            <strong> Social media link: <?php echo($request->social_media); ?> </strong>
-        </div>
+<div id="admintoolbox">
+    <div id="admintools">
+        <span id="admintoolslabel"><strong>Admin tools</strong></span>
         <br />
+        <section id="adminbuttons">
+            <button id="adminChangeStatusButton">Change status</button>
+            <button id="adminContactButton">Contact requester</button>
+        </section>
+    </div>
+    <div id="adminrequeststatus">
+        <h3>---- Request status: deleted ----</h3>
+        <strong> This request is only visible to moderators and the requester. </strong>
         <br />
+        <strong> Social media link: <?php echo($request->social_media); ?> </strong>
+    </div>
+</div>
+<br />
+<br />
 
 <?php
 
@@ -246,6 +247,20 @@ function doRequesterStuff($request) {
 
 <?php
 
+    } else if ($request->status == 'deleted') {
+
+    ?>
+
+    <div id="requestStatusBox">
+        <div id="userRequestStatus">
+            <h3>---- This request is deleted ----</h3>
+            <strong> An admin may be able to restore this request, but you can not. </strong>
+        </div>
+    </div>
+    <br />
+    <br />
+
+    <?php
     }
 }
 

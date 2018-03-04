@@ -296,6 +296,16 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
               $filters[] =  'description LIKE "%' . trim($params['desc']) . '%"';
           }
 
+          //-------------------------------------------------------------------------
+          // title filter --
+          //	Text-based filter
+          //-------------------------------------------------------------------------
+
+          if (isset($params['title'])) {
+
+              $filters[] =  'title LIKE "%' . trim($params['title']) . '%"';
+          }
+
           //-------------------------------------------------
           // NSFW flag --
           // 	yes = include NSFW and non-NSFW results
@@ -1219,6 +1229,10 @@ function starcall_enqueue () {
                         plugins_url('js/comments.js', __FILE__),
                         array('jquery','wp-api'),'1.0', true);
 
+    wp_register_script('starcall_frontpage',
+                        plugins_url('js/frontpage.js', __FILE__),
+                        array('jquery','wp-api'),'1.0', true);
+
     // CSS
     wp_register_style(
         'starcall-css', // handle name
@@ -1243,6 +1257,10 @@ function starcall_enqueue () {
     // Submit request page
     if (is_page("submit")) {
         wp_enqueue_script('submit_request');
+    }
+
+    if (is_page("front-page")) {
+        wp_enqueue_script('starcall_frontpage');
     }
 }
 

@@ -18,12 +18,14 @@ get_header(); ?>
 <head><title>Search requests</title></head>
 
 <div class=request_table>
-<input id = "requestdesc" type="text"></input><button id = "searchbutton"> Search </button>
-<input type="checkbox" id="includensfw" value="1">
-<label for="includensfw">Include NSFW</label>
 
 <table id="requesttable">
   <thead>
+    <tr id="requesttablefilters">
+        <th class="filterrow"></th>
+        <th class="filterrow"><input id = "requesttitle" type="text"></input></th>
+        <th class="filterrow"><input id = "requestdesc" type="text"></input></th>
+        <th class="filterrow"><button id = "searchbutton"> Search </button><br /><input type="checkbox" id="includensfw" value="1"><label for="includensfw">Include NSFW</label></th>
     <tr>
       <th>Requester</th>
       <th>Title</th>

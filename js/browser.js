@@ -21,7 +21,16 @@ jQuery( document ).ready(function() {
 jQuery('#requestdesc').on('keypress', function (e) {
    var code = e.keyCode || e.which;
    if (code==13) {
-       jQuery.when(getRequests(jQuery(this).val(),jQuery('#includensfw').prop('checked'))).done(function(e) {
+       jQuery.when(getRequests(jQuery('#requesttitle').val(), jQuery(this).val(),jQuery('#includensfw').prop('checked'))).done(function(e) {
+           makePage(1);
+       });
+   }
+} );
+
+jQuery('#requesttitle').on('keypress', function (e) {
+   var code = e.keyCode || e.which;
+   if (code==13) {
+       jQuery.when(getRequests(jQuery(this).val(), jQuery('#requestdesc').val(),jQuery('#includensfw').prop('checked'))).done(function(e) {
            makePage(1);
        });
    }
@@ -29,18 +38,22 @@ jQuery('#requestdesc').on('keypress', function (e) {
 
 jQuery('#searchbutton').on( 'click', function ( e )  {
  e.preventDefault();
- jQuery.when(getRequests(jQuery('#requestdesc').val(),jQuery('#includensfw').prop('checked'))).done(function(e) {
+ jQuery.when(getRequests(jQuery('#requesttitle').val(), jQuery('#requestdesc').val(),jQuery('#includensfw').prop('checked'))).done(function(e) {
      makePage(1);
  });
 } );
 
-function getRequests (desc, nsfw) {
+function getRequests (title, desc, nsfw) {
 
    var endpoint = '/wp-json/starcall/v1/requests/';
    var filters = [];
 
    if (desc) {
        filters.push('desc=' + desc);
+   }
+
+   if(title) {
+       filters.push('title=' + title);
    }
 
    if (nsfw == 1) {

@@ -88,8 +88,13 @@ jQuery( document ).ready(function() {
     // end admin functions ------------------------------------------------
 
     jQuery.when(getRequest()).done(function(e) {
-        loadRequest();
-        loadComments();
+        if (thisRequest.status == 'approved' || thisRequest.user_authorized) {
+            // Only show the request if it is approved, or if the user is authorized
+            loadRequest();
+            loadComments();
+        } else {
+            requestNotFound();
+        }
     });
 });
 
@@ -288,7 +293,8 @@ function editRequest() {
              '<label for="editfanart_no">Original</label><br /><br />' +
              '<strong>Description</strong><br>' +
              '<textarea class="editdescription"></textarea><br><br>' +
-             '<button class="saveButton">Save</button><button class="cancelButton">Cancel</button>';
+             '<button class="saveButton">Save</button><button class="cancelButton">Cancel</button>' +
+             '<button class="deleteRequestButton">Delete Request</button>';
 
     jQuery('#requestarea').append(markup);
     jQuery('.editdescription').html(updateRequest.description);
@@ -307,13 +313,17 @@ function editRequest() {
     }
 
 
-    // Add handlers to save/cancel buttons
+    // Add handlers to save/cancel/delete buttons
     jQuery('.saveButton').click(function(){
         saveRequest(updateRequest);
     });
 
     jQuery('.cancelButton').click(function(){
         cancelChanges();
+    });
+
+    jQuery('.deleteRequestButton').click(function(){
+        deleteRequest();
     });
 }
 
@@ -521,7 +531,6 @@ function adminDenyRequest() {
 }
 
 function adminApproveRequest() {
-    alert("You pressed it");
     updateRequest = Object.assign({}, thisRequest);
     updateRequest.status = 'approved';
     jQuery.when(ajaxUpdateRequest(updateRequest)).done(function(e) {
@@ -554,6 +563,16 @@ function fixSocialMedia() {
         updateRequest.social_media = jQuery('fixSocialMedia').val();
         jQuery.when(ajaxUpdateRequest(updateRequest)).done(function(e) {
             location.reload();
+        });
+    }
+}
+
+function deleteRequest () {
+    updateRequest = Object.assign({}, thisRequest);
+    if (confirm("Really delete? This can not be undone!")) {
+        updateRequest.status = 'deleted';
+        jQuery.when(ajaxUpdateRequest(updateRequest)).done(function(e) {
+            //location.reload();
         });
     }
 }

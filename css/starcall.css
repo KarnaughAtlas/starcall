@@ -123,8 +123,21 @@ button, input[type="button"], input[type="reset"], input[type="submit"] {
 	text-align: left;
 }
 
-#requestdesc {
+#requestdesc, #requesttitle {
 	border: 2px solid black;
+}
+
+.deleteRequestButton {
+    float: right;
+}
+
+#requesttable {
+    border: none;
+}
+
+.filterrow {
+    background-color: white;
+    border : none;
 }
 
 .requestrow:hover {
@@ -291,6 +304,10 @@ button, input[type="button"], input[type="reset"], input[type="submit"] {
 #giftarea, #commentarea {
 	border-top: 1px dashed black;
 	padding-top: 15px
+}
+
+.deleteRequestButton {
+    float: right;
 }
 
 #adminWindowSelectReason, #adminWindowText {
