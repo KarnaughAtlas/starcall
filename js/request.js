@@ -34,6 +34,10 @@ jQuery( document ).ready(function() {
         jQuery('#submitGiftLoading').show();
     })
 
+    jQuery('#submitFixSocialMedia').click(function() {
+        fixSocialMedia();
+    });
+
     // Admin functions --------------------------------------------------
 
     // Deny request window
@@ -512,7 +516,7 @@ function adminDenyRequest() {
     updateRequest.status = 'denied';
     updateRequest.status_reason = jQuery('#adminSelectDenyReason').val();
     jQuery.when(ajaxUpdateRequest(updateRequest)).done(function(e) {
-        //location.reload();
+        location.reload();
     });
 }
 
@@ -538,7 +542,20 @@ function adminChangeRequestStatus() {
         // Invalid status
         alert("Select a valid status");
     }
+}
 
+function fixSocialMedia() {
+    updateRequest = Object.assign({}, thisRequest);
+    if (jQuery('#fixSocialMedia') == '') {
+        alert("Please enter a social media link.");
+    } else if (jQuery('#fixSocialMedia').val() == thisRequest.social_media) {
+        alert("Please update your social media link.");
+    } else {
+        updateRequest.social_media = jQuery('fixSocialMedia').val();
+        jQuery.when(ajaxUpdateRequest(updateRequest)).done(function(e) {
+            location.reload();
+        });
+    }
 }
 
 function ajaxUpdateRequest(updateRequest) {

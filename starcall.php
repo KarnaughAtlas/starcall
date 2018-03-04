@@ -477,6 +477,9 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
                          if (current_user_can ('administrator') || current_user_can('moderator') ||
                             (get_current_user_id() == $requestToUpdate->user_id && $requestToUpate->status == 'deleted')) {
                              $data += array('status' => $requestToUpdate->status);
+                             if (isset($requestToUpdate->status_reason)) {
+                                 $data += array('status_reason' => $requestToUpdate->status_reason);
+                             }
 
                          } else {
                              // Something fishy is going on here, kick them out
@@ -484,6 +487,11 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
                              $response->errmsg = 'Invalid request - nice try';
                              return($response);
                          }
+                     }
+
+                     if ($requestToUpdate->social_media != $existingRequest->social_media) {
+                         // The user has updated their social media link; set the status to submitted
+                         $data += array('status' => 'submitted');
                      }
 
                      // Build the where array
@@ -549,6 +557,18 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
                              $message = "https://starcall.sylessae.com/request?request_id=" . $requestToUpdate->request_id;
                              $message .= "\r\n\r\nDo not reply to this email. This message was automatically generated and this inbox is unmonitored.";
                              mail($email,$subject,$message,$headers);
+                         } else if ($requestToUpdate->status == 'denied') {
+
+                             // Someone has modified a denied request; send alert to moderators so they can re-approve
+                             $user = wp_get_current_user();
+
+                             $email = "moderators@sylessae.com";
+                             $headers = "From: noreply@sylessae.com";
+                             $subject = "[System message]Denied request '" . $requestToUpdate->title . "' has been modified by " . $user->user_login;
+                             $message = "Please review the request and ensure it meets submission criteria.\r\n\r\n";
+                             $message .= "https://starcall.sylessae.com/request?request_id=" . $requestToUpdate->request_id;
+                             $message .= "\r\n\r\nDo not reply to this email. This message was automatically generated and this inbox is unmonitored.";
+                             mail($email,$subject,$message,$headers);
                          }
 
 
@@ -584,12 +604,12 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
                   $table = 'wpsc_rq_requests';
                   $requestStatus = 'submitted';
 
-                  $currentUser = get_current_user_id();
+                  $currentUser = wp_get_current_user();
 
                   // Build data array for fields to insert
                   $data = array(
                       'title' => $requestToUpdate->title,
-                    'user_id' => $currentUser,
+                    'user_id' => $currentUser->ID,
                        'nsfw' => $requestToUpdate->nsfw,
                     'fan_art' => $requestToUpdate->fan_art,
                'social_media' => $requestToUpdate->social_media,
@@ -612,8 +632,9 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
                       // Notify admins that the request is awaiting approval
                       $email = "moderators@sylessae.com";
                       $headers = "From: noreply@sylessae.com";
-                      $subject = "[System message]Request '" . $requestToUpdate->title . "' is waiting for approval.";
-                      $message = "https://starcall.sylessae.com/request?request_id=" . $wpdb->insert_id;
+                      $subject = "[System message]Request '" . $requestToUpdate->title . "' by " . $currentUser->user_login . " is waiting for approval.";
+                      $message = "Please review the request and ensure it meets submission criteria.\r\n\r\n";
+                      $message .= "https://starcall.sylessae.com/request?request_id=" . $wpdb->insert_id;
                       $message .= "\r\n\r\nDo not reply to this email. This message was automatically generated and this inbox is unmonitored.";
                       mail($email,$subject,$message,$headers);
 

@@ -70,6 +70,12 @@ button, input[type="button"], input[type="reset"], input[type="submit"] {
 	padding-top: 15px;
 }
 
+#twitterFeed {
+	width: 80%;
+	margin: auto;
+	padding-top: 15px;
+}
+
 #masterGallery {
 
 }

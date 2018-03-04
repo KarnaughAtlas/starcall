@@ -142,15 +142,17 @@ function doAdminStuff ($request) {
 ?>
 
     <div id="admintoolbox">
-        <span id="admintoolslabel"><strong>Admin tools</strong></span>
-        <br />
-        <section id="adminbuttons">
-            <button id="adminChangeStatusButton">Change status</button>
-            <button id="adminContactButtont">Contact requester</button>
-        </section>
+        <div id="admintools">
+            <span id="admintoolslabel"><strong>Admin tools</strong></span>
+            <br />
+            <section id="adminbuttons">
+                <button id="adminChangeStatusButton">Change status</button>
+                <button id="adminContactButton">Contact requester</button>
+            </section>
+        </div>
         <div id="adminrequeststatus">
             <h3>---- Request status: denied ----</h3>
-            <strong> Maybe someday this area will tell you why. </strong>
+            <strong> Only admins and the requester can see this. </strong>
         </div>
     </div>
     <br />
@@ -203,7 +205,28 @@ function doRequesterStuff($request) {
     <div id="requestStatusBox">
         <div id="userRequestStatus">
             <h3>---- Your request has been denied. ----</h3>
-            <strong> <?php echo("this is gonna have the status_reason"); ?> </strong>
+<?php
+    if ($request->status_reason == 'socialmedia') {
+        // The user did not share on social media; let them update the link here
+?>
+        <p>You did not share the request on social media, or did not provide a direct link to your post. Please update your social media link below: </p>
+        <input id='fixSocialMedia' type='text'><?php echo($request->social_media) ?></text>
+        <br /><br />
+        <button id='submitFixSocialMedia'>Submit</button>
+
+<?php
+
+    } else if ($request->status_reason == 'incomplete') {
+        // The request isn't complete; tell the user to fix it
+
+    } else if ($request->status_reason == 'inappropriate') {
+        // The request contains material that isn't allowed; tell the user to fix it
+
+    } else {
+        // Somehow we have a denied request without a reason; tell the user to contact the mods
+
+    }
+?>
         </div>
     </div>
     <br />
@@ -297,7 +320,7 @@ function get_request() {
     </form>
     <div id="submitGiftLoading" style="display: none">
         <img class="loading" src="http://thinkfuture.com/wp-content/uploads/2013/10/loading_spinner.gif" width="60px" height="60px" />
-        <p> Loading, please wait...
+        <p> Loading, please wait... </p>
     </div>
   </div>
 </div>
