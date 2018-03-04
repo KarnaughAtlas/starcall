@@ -25,9 +25,14 @@ jQuery( document ).ready(function() {
         jQuery('.modalWindow').hide();
     });
 
+    // Submit gift window stuff
     jQuery('#showNewGiftWindowButton').click(function() {
         jQuery('#submitGiftWindow').show();
     });
+
+    jQuery('#submitGiftButton').click(function(){
+        jQuery('#submitGiftLoading').show();
+    })
 
     // Admin functions --------------------------------------------------
 

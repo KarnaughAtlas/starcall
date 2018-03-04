@@ -1222,13 +1222,27 @@ function submit_gift() {
 
     global $wpdb;
 
+    // NOTE: all of the gift functionality is highly dependant on the FooGallery
+    // plugin. Use caution when updating this plugin.
+
     // This is the ID for the Gallery Template post. Janky way of doing this,
     // but it allows us to change the settings without changing every single gallery.
+
     // TODO write a function to update all gallery post meta from this Template
 
     $templateGalleryId = 2365;
 
-    // Note that this is all highly dependant on the FooGallery plugin
+    // This is the ID for the FooGallery master gallery. All requests are added
+    // here and it is displayed on the front page. This gallery does NOT get
+    // updated from the template. Because the images are stored in the WP media
+    // library, they only take up disk space once.
+
+    $masterGalleryId = 2480;
+
+    // This is the ID for the 'latest gifts' gallery. It will show the gifts in most recent order.
+
+    $latestGalleryId = 2487;
+
     // Get the post data
     $giftCaption = $_POST['giftCaption'];
     $giftNote = $_POST['giftNote'];
@@ -1313,6 +1327,16 @@ function submit_gift() {
           $galleryAttachments = get_post_meta($galleryPostId, 'foogallery_attachments', true);
           $galleryAttachments[] = $attachment_id;
           update_post_meta($galleryPostId, 'foogallery_attachments', $galleryAttachments);
+
+          // Now do the attachment for the master gallery
+          $galleryAttachments = get_post_meta($masterGalleryId, 'foogallery_attachments', true);
+          $galleryAttachments[] = $attachment_id;
+          update_post_meta($masterGalleryId, 'foogallery_attachments', $galleryAttachments);
+
+          // Now do the attachment for the new gifts gallery
+          $galleryAttachments = get_post_meta($latestGalleryId, 'foogallery_attachments', true);
+          $galleryAttachments[] = $attachment_id;
+          update_post_meta($latestGalleryId, 'foogallery_attachments', $galleryAttachments);
       }
 
         // Email the requester to let them know they have a new gift
@@ -1367,5 +1391,39 @@ function get_comment_request_page($commentID) {
         return(get_comment_request_page($thisComment->reply_id));
     }
 }
+
+// Custom page templates
+
+add_filter( 'page_template', 'starcall_page_templates' );
+function starcall_page_templates( $page_template )
+{
+    if ( is_page( 'front-page' ) ) {
+        $page_template = dirname( __FILE__ ) . '/pages/frontpage.php';
+    }
+
+    if ( is_page( 'request' ) ) {
+        $page_template = dirname( __FILE__ ) . '/pages/request.php';
+    }
+
+    if ( is_page( 'requests' ) ) {
+        $page_template = dirname( __FILE__ ) . '/pages/requestbrowser.php';
+    }
+
+    if ( is_page( 'submit' ) ) {
+        $page_template = dirname( __FILE__ ) . '/pages/rq_submit.php';
+    }
+
+
+    return $page_template;
+}
+
+// Enqueue css
+
+function starcall_stylesheet()
+{
+    wp_enqueue_style( 'starcall.css', plugins_url( '/css/starcall.css', __FILE__ ) );
+}
+
+add_action('admin_print_styles', 'starcall_stylesheet');
 
 ?>

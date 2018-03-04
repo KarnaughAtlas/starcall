@@ -277,20 +277,27 @@ function get_request() {
 <div id="submitGiftWindow" class="modalWindow">
   <div class="modal-content">
     <span class="windowClose">&times;</span>
+    <h4>Give a gift</h4>
     <form id="giftForm" action="<?php echo esc_url( admin_url('admin-post.php') ); ?>" method="post" enctype="multipart/form-data">
-        <strong>Image caption (this will be visible to everyone!):</strong><br />
-        <input type="textarea" name="giftCaption" id="giftCaption">
+        <strong>Caption:</strong><br />
+        <textarea name="giftCaption" id="giftCaption" form="giftForm" placeholder="This is visible to everyone!"></textarea>
         <br />
-        <strong>Note to requester (This will only be seen by the requester!):</strong><br />
-        <input type="textarea" name="giftNote" id="giftNote">
+        <br />
+        <strong>Gift note:</strong><br />
+        <textarea name="giftNode" id="giftNote" form="giftForm" placeholder="Only the requester will receive this!"></textarea>
+        <br />
         <br />
         <strong>Select image to upload:</strong>
         <input type="file" name="fileToUpload" id="fileToUpload"></input>
         <br />
         <br />
-        <input type="submit" value="Submit gift" name="submitGift"></input>
+        <input type="submit" id="submitGiftButton" value="Submit gift" name="submitGift"></input>
         <input type="hidden" name="action" value="submit_gift"></input>
         <input type="hidden" name="requestId" value=""></input>
     </form>
+    <div id="submitGiftLoading" style="display: none">
+        <img class="loading" src="http://thinkfuture.com/wp-content/uploads/2013/10/loading_spinner.gif" width="60px" height="60px" />
+        <p> Loading, please wait...
+    </div>
   </div>
 </div>
