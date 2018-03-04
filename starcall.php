@@ -329,29 +329,34 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
           //        all: show all (mod only)
           //-------------------------------------------------------------------------
 
-          // TODO: Only allow moderators and above to filter on status, otherwise user will only see approved requests
-
             if(isset($params['status'])) {
-                if ($params['status'] == 'submitted') {
+                if (current_user_can('adminstrator') || current_user_can('moderator')) {
+                    if ($params['status'] == 'submitted') {
 
-                    $filters[] =  "status = 'submitted'";
+                        $filters[] =  "status = 'submitted'";
 
-                } elseif ($params['status'] == 'deleted') {
+                    } elseif ($params['status'] == 'deleted') {
 
-                    $filters[] =  "status = 'deleted'";
+                        $filters[] =  "status = 'deleted'";
 
-                } elseif ($params['status'] == 'pending') {
+                    } elseif ($params['status'] == 'denied') {
 
-                    $filters[] =  "status = 'pending'";
+                        $filters[] =  "status = 'pending'";
 
-                } elseif ($params['status'] == 'all') {
-                     // Include all so don't add anything
+                    } elseif ($params['status'] == 'all') {
+                         // Include all so don't add anything
 
+                    } else {
+                         // Default is include only 'approved' requests
+                        $filters[] =  "status = 'approved'";
+                    }
                 } else {
-                     // Default is include only 'approved' requests
+                    // User is not authorized to filter on status
                     $filters[] =  "status = 'approved'";
-
                 }
+            } else {
+                // Status was not supplied
+                $filters[] = "status = 'approved'";
             }
 
           //TODO allow filtering on artist, submitter <- search by name?

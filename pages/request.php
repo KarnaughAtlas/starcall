@@ -107,6 +107,9 @@ function doAdminStuff ($request) {
     <div id="adminrequeststatus">
         <h3>---- Request awaiting approval ----</h3>
         <strong> This needs to be approved before it is visible</strong>
+        <br />
+        <br />
+        <strong> Social media link: <?php echo(do_url($request->social_media)); ?>
     </div>
 </div>
 <br />
@@ -130,6 +133,9 @@ function doAdminStuff ($request) {
             <div id="adminrequeststatus">
                 <h3>---- Request status: approved ----</h3>
                 <strong> This request is visible to all users </strong>
+                <br />
+                <br />
+                <strong> Social media link: <?php echo($request->social_media); ?> </strong>
             </div>
         </div>
         <br />
@@ -153,6 +159,9 @@ function doAdminStuff ($request) {
         <div id="adminrequeststatus">
             <h3>---- Request status: denied ----</h3>
             <strong> Only admins and the requester can see this. </strong>
+            <br />
+            <br />
+            <strong> Social media link: <a href="<?php echo($request->social_media); ?>"></a> </strong>
         </div>
     </div>
     <br />
@@ -172,6 +181,9 @@ function doAdminStuff ($request) {
             </section>
             <h3>---- Request status: deleted ----</h3>
             <strong> This request has been deleted and is only visible to administrators. </strong>
+            <br />
+            <br />
+            <strong> Social media link: <?php echo($request->social_media); ?> </strong>
         </div>
         <br />
         <br />
@@ -210,7 +222,7 @@ function doRequesterStuff($request) {
         // The user did not share on social media; let them update the link here
 ?>
         <p>You did not share the request on social media, or did not provide a direct link to your post. Please update your social media link below: </p>
-        <input id='fixSocialMedia' type='text'><?php echo($request->social_media) ?></text>
+        <input id='fixSocialMedia' type='text' value="<?php echo($request->social_media) ?>"></text>
         <br /><br />
         <button id='submitFixSocialMedia'>Submit</button>
 
@@ -246,7 +258,28 @@ function get_request() {
               FROM wpsc_rq_requests
               WHERE request_id = ' . $requestID;
     $request = $wpdb->get_row($query);
+    write_log($request);
     return($request);
+}
+
+function do_url ($text) {
+    // Very simple, very hacky way to format URLs as <a>s. TODO do this better
+    // The Regular Expression filter
+    $reg_exUrl = "/(http|https|ftp|ftps)\:\/\/[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,3}(\/\S*)?/";
+
+
+    // Check if there is a url in the text
+    if(preg_match($reg_exUrl, $text, $url)) {
+
+       // make the urls hyper links
+       return(preg_replace($reg_exUrl, '<a href="'.$url[0].'" rel="nofollow">'.$url[0].'</a>', $text));
+
+   } else {
+
+       // if no urls in the text just return the text
+       return($text);
+
+   }
 }
 
 ?>
