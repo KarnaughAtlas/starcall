@@ -558,7 +558,7 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
                                      $message .= "\r\n\r\nThe moderation team will be notified when you edit your request.";
 
                                  } else {
-                                     $message .= "Please contact the moderation team for details.";
+                                     $message .= "Please contact the moderators for details.";
                                  }
                              } elseif ($requestToUpdate->status == 'deleted') {
                                  $subject = "Your request has been deleted.";
@@ -1238,6 +1238,9 @@ function starcall_enqueue () {
     wp_register_script('starcall_frontpage',
                         plugins_url('js/frontpage.js', __FILE__),
                         array('jquery','wp-api'),'1.0', true);
+    wp_register_script('starcall_common',
+                        plugins_url('js/starcall_common.js', __FILE__),
+                        array('jquery','wp-api'),'1.0', true);
 
     // CSS
     wp_register_style(
@@ -1251,6 +1254,7 @@ function starcall_enqueue () {
     //Enqueue common scripts and CSS for all pages
     wp_enqueue_style('starcall-css');
     wp_enqueue_script('starcall_comments');
+    wp_enqueue_script('starcall_common');
 
     // We only want the request script on the corresponding page
     if (is_page("request")) {
@@ -1277,6 +1281,7 @@ add_action( 'wp_enqueue_scripts', 'starcall_enqueue' );
 //----------------------------------------------------------------------------
 
 add_action( 'admin_post_submit_gift', 'submit_gift');
+add_action('admin_post_nopriv_submit_gift','submit_gift');
 
 function submit_gift() {
 
@@ -1365,16 +1370,29 @@ function submit_gift() {
   // Let WordPress handle the upload.
   // Build the attachment post data - we need to have the title and author in the caption
 
+  // get request and user data
+  $sql = "SELECT * FROM wpsc_rq_requests " .
+         "WHERE request_id = " . $requestID;
+
+  $thisRequest = $wpdb->get_row($sql);
+  $requestingUserData = get_userdata($thisRequest->user_id);
+
   // Load user data into current_user
   $giftUser = wp_get_current_user();
 
   if($giftUser) {
+
       // Successfully got the user
-      $giftTitle = 'Gift by ' . $giftUser->user_login;
+      $giftTitle = 'Gift by <a href="https://sylessae.com/user/' . $giftUser->user_login . '">' . $giftUser->user_login . "</a>";
+
+      $postContent = "Gifted to " . $requestingUserData->user_login . " for request <a href='https://starcall.sylessae.com/request/?request_id=" . $thisRequest->request_id . "'>'" . $thisRequest->title . "'</a>.";
+      if ($giftCaption) {
+          $postContent .= "<br />'" . $giftCaption . "'";
+      }
 
       $postArr = array(
            'post_title' => $giftTitle,
-           'post_excerpt' => $giftCaption
+           'post_content' => $postContent
       );
 
       $attachment_id = media_handle_upload( 'fileToUpload', $galleryPostId, $postArr );
@@ -1400,11 +1418,6 @@ function submit_gift() {
       }
 
         // Email the requester to let them know they have a new gift
-        $sql = "SELECT * FROM wpsc_rq_requests " .
-               "WHERE request_id = " . $requestID;
-
-        $thisRequest = $wpdb->get_row($sql);
-        $requestingUserData = get_userdata($thisRequest->user_id);
 
         $url = 'https://starcall.sylessae.com/request/?request_id=' . $thisRequest->request_id;
 

@@ -16,6 +16,23 @@ get_header();
 
 ?>
 <body>
+    <div id="areYouLost">
+        <h4>LOST? CLICK HERE TO GET STARTED!</h4>
+    </div>
+
+    <div id="getStartedBox">
+        <div  id="getStartedChecklist">
+            <ul>
+                <li>Have you <a href="https://sylessae.com/register">signed up</a>?</li>
+                <li>Have you read our <a href="https://starcall.sylessae.com/rules/">rules</a>, <a href="https://starcall.sylessae.com/starcall-faq/">FAQ</a> and <a href="https://starcall.sylessae.com/tos/">terms of service</a>?</li>
+                <li>Have you updated your <a href="http://www.sylessae.com/user">bio</a>?</li>
+                <li>Have you introduced yourself on the <a href="https://starcall.sylessae.com/forums/">forums</a>?</li>
+                <li>Artists: Have you found a <a href="https://starcall.sylessae.com/requests/">request</a> that interests you?</li>
+                <li>Have you submitted a <a href="https://starcall.sylessae.com/submit/">request</a>?</li>
+            </ul>
+        </div>
+    </div>
+
     <div class="columnContainer">
         <section id="leftContainer">
             <head><title>Project Starcall - CREATE | GIVE | INSPIRE</title></head>
@@ -32,7 +49,8 @@ get_header();
             </div>
             <div id="latestRequests">
                 <?php get_latest_gifts(); ?>
-                <a href="https://starcall.sylessae.com/requests">Browse all requests</a>
+                <a href="https://starcall.sylessae.com/requests"><button id="frontPageBrowseRequestsButton">Browse requests</button></a>
+                <a href="https://starcall.sylessae.com/submit"><button id="frontPageSubmitRequestsButton">Submit a request</button></a>
 
             </div>
         </section>
@@ -44,7 +62,10 @@ get_header();
             </div>
             <h3 id="rightContainerHeader">TWITTER</h3>
             <div id="twitterFeed">
-                This is for the twitter feed
+                <?php
+                $shortcode = '[statictweets skin="default" resource="usertimeline" user="projectStarcall" count="13" retweets="on" show="time,media"/]';
+                echo(do_shortcode($shortcode));
+                ?>
             </div>
         </section>
 </div>
@@ -64,7 +85,7 @@ function get_latest_gifts() {
             LEFT JOIN wp_users ON wpsc_rq_requests.user_id = wp_users.ID
             WHERE status = "approved"
             ORDER BY create_date desc
-            LIMIT 5';
+            LIMIT 10';
 
     $requests = $wpdb->get_results($sql);
 

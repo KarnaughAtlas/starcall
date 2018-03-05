@@ -31,7 +31,14 @@ jQuery( document ).ready(function() {
     });
 
     jQuery('#submitGiftButton').click(function(){
-        jQuery('#submitGiftLoading').show();
+        if(!jQuery('#agreeTOS').is(':checked')) {
+            alert("You must agree to the rules and terms of service.");
+        } else if(!jQuery('#fileToUpload').val()) {
+            alert("You must select a file to upload.");
+        } else {
+            jQuery('#submitGiftLoading').show();
+            jQuery('#submitGiftButton').hide();
+        }
     })
 
     jQuery('#submitFixSocialMedia').click(function() {
@@ -243,7 +250,7 @@ function loadRequest () {
             markup += '<strong>Original ';
         }
 
-        markup += 'request by ' + thisRequest.user_login + '</strong><br /><br />';
+        markup += 'request by </strong><a href="https://sylessae.com/user/' + thisRequest.user_login + '">' + thisRequest.user_login + '</a><br /><br />';
 
         if  (thisRequest.user_authorized) {
             markup += '<button class="editbutton"> Edit request </button><br /><br />';

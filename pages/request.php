@@ -350,24 +350,27 @@ function do_url ($text) {
     <span class="windowClose">&times;</span>
     <h4>Give a gift</h4>
     <form id="giftForm" action="<?php echo esc_url( admin_url('admin-post.php') ); ?>" method="post" enctype="multipart/form-data">
-        <strong>Caption:</strong><br />
+        <strong>Caption(optional):</strong><br />
         <textarea name="giftCaption" id="giftCaption" form="giftForm" placeholder="This is visible to everyone!"></textarea>
         <br />
         <br />
-        <strong>Gift note:</strong><br />
+        <strong>Gift note(optional):</strong><br />
         <textarea name="giftNode" id="giftNote" form="giftForm" placeholder="Only the requester will receive this!"></textarea>
         <br />
         <br />
         <strong>Select image to upload:</strong>
-        <input type="file" name="fileToUpload" id="fileToUpload"></input>
+        <input type="file" name="fileToUpload" id="fileToUpload" required></input>
         <br />
         <br />
+        <input type="checkbox" id="agreeTOS" name="agreeTOS" value="yes" required>
+        By checking this box you agree to the <a href="https://starcall.sylessae.com/rules" target="_blank">rules</a> and <a href="https://starcall.sylessae.com/tos" target="_blank">Terms of Service.</a>
+        <br /><br />
         <input type="submit" id="submitGiftButton" value="Submit gift" name="submitGift"></input>
         <input type="hidden" name="action" value="submit_gift"></input>
         <input type="hidden" name="requestId" value=""></input>
     </form>
     <div id="submitGiftLoading" style="display: none">
-        <img class="loading" src="http://thinkfuture.com/wp-content/uploads/2013/10/loading_spinner.gif" width="60px" height="60px" />
+        <img class="loading" src="<?php echo(plugins_url('starcall/assets/loading.gif')) ?>" width="60px" height="60px" />
         <p> Loading, please wait... </p>
     </div>
   </div>
