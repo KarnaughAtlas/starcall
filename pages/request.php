@@ -380,10 +380,10 @@ function do_url ($text) {
 
 <!-- Loading window-->
 <div id="loadingWindow" class="loadingWindow">
-  <div class="modal-content">
-    <img class="loading" src="<?php echo(plugins_url('starcall/assets/loading.gif')) ?>" width="80px" height="80px" />
-    <span id="loadingText"> Loading, please wait... </span>
-    <br />
-    <br />
+  <div class="modal-content" id="loadingWindowContent">
+    <div class="loadingStatusMessage">
+        <img class="loadingSpinner" src="<?php echo(plugins_url('starcall/assets/loading.gif')) ?>" width="40px" height="40px" />
+        <span id="loadingText"> Loading, please wait... </span>
+    </div>
   </div>
 </div>

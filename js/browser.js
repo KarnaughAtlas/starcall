@@ -45,6 +45,8 @@ jQuery('#searchbutton').on( 'click', function ( e )  {
 
 function getRequests (title, desc, nsfw) {
 
+   jQuery('#loadingWindow').show();
+
    var endpoint = '/wp-json/starcall/v1/requests/';
    var filters = [];
 
@@ -86,6 +88,8 @@ function getRequests (title, desc, nsfw) {
 }
 
 function makePage (page) {
+
+    jQuery('#loadingWindow').hide();
 
     jQuery('#requesttable tbody').empty();
 

@@ -326,7 +326,6 @@ function editRequest() {
     // Add handlers to save/cancel/delete buttons
     jQuery('.saveButton').click(function(){
         saveRequest(updateRequest);
-        jQuery('#loadingWindow').show();
     });
 
     jQuery('.cancelButton').click(function(){
@@ -367,6 +366,7 @@ function saveRequest(updateRequest) {
         jQuery('#edit-title').val(thisRequest.title);
 
     } else {
+        jQuery('#loadingWindow').show();
         // Do the update
         var endpoint = '/wp-json/starcall/v1/requests/?request_id=' +
         getUrlParameter("request_id");
