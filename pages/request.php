@@ -16,7 +16,9 @@ get_header();
 $request = get_request();
 
 // Should we display admin functions?
-$userIsAdmin = (current_user_can('administrator') || current_user_can('moderator'));
+
+$userIsAdmin = (in_array('starcall_moderator',wp_get_current_user()->roles) || in_array('administrator',wp_get_current_user()->roles));
+
 if ($userIsAdmin) {
     doAdminStuff($request);
 } else if (get_current_user_id() == $request->user_id) {
@@ -373,5 +375,15 @@ function do_url ($text) {
         <img class="loading" src="<?php echo(plugins_url('starcall/assets/loading.gif')) ?>" width="60px" height="60px" />
         <p> Loading, please wait... </p>
     </div>
+  </div>
+</div>
+
+<!-- Loading window-->
+<div id="loadingWindow" class="loadingWindow">
+  <div class="modal-content">
+    <img class="loading" src="<?php echo(plugins_url('starcall/assets/loading.gif')) ?>" width="80px" height="80px" />
+    <span id="loadingText"> Loading, please wait... </span>
+    <br />
+    <br />
   </div>
 </div>

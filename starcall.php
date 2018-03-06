@@ -340,7 +340,7 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
           //-------------------------------------------------------------------------
 
             if(isset($params['status'])) {
-                if (current_user_can('adminstrator') || current_user_can('moderator')) {
+                if (in_array('starcall_moderator',wp_get_current_user()->roles) || in_array('administrator',wp_get_current_user()->roles)) {
                     if ($params['status'] == 'submitted') {
 
                         $filters[] =  "status = 'submitted'";
@@ -388,7 +388,7 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
 
       // Now we need to figure out if the user has auth rights to modify the requests
 
-      $userIsAdmin = (current_user_can('administrator') || current_user_can('moderator'));
+      $userIsAdmin = (in_array('starcall_moderator',wp_get_current_user()->roles) || in_array('administrator',wp_get_current_user()->roles));
       $currentUser = get_current_user_id();
 
       foreach ($requests as $request) {
@@ -462,8 +462,7 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
                   // Must be mod, admin, or the owner of the request
                   $currentUser = get_current_user_id();
 
-                  if (current_user_can('moderator') ||
-                      current_user_can('administrator') ||
+                  if (in_array('starcall_moderator',wp_get_current_user()->roles) || in_array('administrator',wp_get_current_user()->roles) ||
                       $currentUser == $existingRequest->user_id) {
                       // Do the update
 
@@ -489,7 +488,7 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
                      // Request to update status - only moderators and administrators
                      // Users can delete their own requests
                      if ($requestToUpdate->status != $existingRequest->status) {
-                         if (current_user_can ('administrator') || current_user_can('moderator') ||
+                         if (in_array('starcall_moderator',wp_get_current_user()->roles) || in_array('administrator',wp_get_current_user()->roles) ||
                             (get_current_user_id() == $requestToUpdate->user_id && $requestToUpate->status == 'deleted')) {
                              $data += array('status' => $requestToUpdate->status);
                              if (isset($requestToUpdate->status_reason)) {
@@ -504,10 +503,10 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
                          }
                      }
 
-                     if ($requestToUpdate->social_media != $existingRequest->social_media) {
-                         // The user has updated their social media link; set the status to submitted
-                         $data += array('status' => 'submitted');
-                     }
+                     // if ($requestToUpdate->social_media != $existingRequest->social_media) {
+                     //     // The user has updated their social media link; set the status to submitted
+                     //     $data += array('status' => 'submitted');
+                     // }
 
                      // Build the where array
                      $where = array('request_id' => $requestToUpdate->request_id);
@@ -704,7 +703,7 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
 
         if (isset($params['request_id'])) {
 
-            if (current_user_can('administrator') || current_user_can('moderator')) {
+            if (in_array('starcall_moderator',wp_get_current_user()->roles) || in_array('administrator',wp_get_current_user()->roles)) {
                 // User is authorized
                 $deletedRows = $wpdb->delete( 'wpsc_rq_requests', array( 'request_id' => $parms['request_id'] ) );
                 if ($deletedRows != 1) {
@@ -751,7 +750,7 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
 
         // Objects
         $comments = new \stdClass();
-        $userIsAdmin = (current_user_can('administrator') || current_user_can('moderator'));
+        $userIsAdmin = (in_array('starcall_moderator',wp_get_current_user()->roles) || in_array('administrator',wp_get_current_user()->roles));
         $currentUser = get_current_user_id();
 
         $params = $request->get_params();
@@ -795,8 +794,7 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
               // Must be mod, admin, or the owner of the comment
               $currentUser = get_current_user_id();
 
-              if (current_user_can('moderator') ||
-                  current_user_can('administrator') ||
+              if (in_array('starcall_moderator',wp_get_current_user()->roles) || in_array('administrator',wp_get_current_user()->roles) ||
                   $currentUser == $existingComment->author_id) {
                   // Do the update
 
@@ -966,7 +964,7 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
 
     if (isset($params['request_id'])) {
 
-        if (current_user_can('administrator') || current_user_can('moderator')) {
+        if (in_array('starcall_moderator',wp_get_current_user()->roles) || in_array('administrator',wp_get_current_user()->roles)) {
             // User is authorized
             $deletedRows = $wpdb->delete( 'wpsc_rq_comments', array( 'comment_id' => $parms['comment_id'] ) );
             if ($deletedRows != 1) {
@@ -1013,7 +1011,7 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
 
         // Objects
         $gifts = new \stdClass();
-        $userIsAdmin = (current_user_can('administrator') || current_user_can('moderator'));
+        $userIsAdmin = (in_array('starcall_moderator',wp_get_current_user()->roles) || in_array('administrator',wp_get_current_user()->roles));
         $currentUser = get_current_user_id();
 
         $params = $request->get_params();
@@ -1057,8 +1055,7 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
                   // Must be mod, admin, or the owner of the gift
                   $currentUser = get_current_user_id();
 
-                  if (current_user_can('moderator') ||
-                      current_user_can('administrator') ||
+                  if (in_array('starcall_moderator',wp_get_current_user()->roles) || in_array('administrator',wp_get_current_user()->roles) ||
                       $currentUser == $existingGift->user) {
                       // Do the update
 

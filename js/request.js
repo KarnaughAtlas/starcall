@@ -291,7 +291,7 @@ function editRequest() {
     jQuery('#requestarea').empty();
 
     markup = '<strong>Title</strong><br>' +
-             '<input type="text" class="edittitle"></input>' +
+             '<input type="text" class="edittitle" id="edit-title"></input>' +
              '<strong>Requested by: ' + updateRequest.user_login + '</strong><br><br>' +
              '<strong>NSFW: <strong><input type="checkbox" class="editnsfw" value="NSFW"><br /><br />' +
              '<input type="radio" name="editfanart" class="editfanart" value ="fanart" id="editfanart_yes">' +
@@ -299,13 +299,16 @@ function editRequest() {
              '<input type="radio" name="editfanart" class="editfanart" value ="original" id="editfanart_no">' +
              '<label for="editfanart_no">Original</label><br /><br />' +
              '<strong>Description</strong><br>' +
-             '<textarea class="editdescription"></textarea><br><br>' +
+             '<textarea class="editdescription" id="edit-description"></textarea><br><br>' +
+             '<strong>References</strong><br>' +
+             '<textarea class="editdescription" id="edit-references"></textarea><br><br>' +
              '<button class="saveButton">Save</button><button class="cancelButton">Cancel</button>' +
              '<button class="deleteRequestButton">Delete Request</button>';
 
     jQuery('#requestarea').append(markup);
-    jQuery('.editdescription').html(updateRequest.description);
-    jQuery('.edittitle').val(updateRequest.title);
+    jQuery('#edit-description').html(updateRequest.description);
+    jQuery('#edit-references').html(updateRequest.reference_links);
+    jQuery('#edit-title').val(updateRequest.title);
 
     if(updateRequest.nsfw == true) {
         jQuery('.editnsfw').prop('checked', true);
@@ -323,6 +326,7 @@ function editRequest() {
     // Add handlers to save/cancel/delete buttons
     jQuery('.saveButton').click(function(){
         saveRequest(updateRequest);
+        jQuery('#loadingWindow').show();
     });
 
     jQuery('.cancelButton').click(function(){
@@ -335,8 +339,9 @@ function editRequest() {
 }
 
 function saveRequest(updateRequest) {
-    updateRequest.description = jQuery('.editdescription').val();
-    updateRequest.title = jQuery('.edittitle').val();
+    updateRequest.description = jQuery('#edit-description').val();
+    updateRequest.reference_links = jQuery('#edit-references').val();
+    updateRequest.title = jQuery('#edit-title').val();
     if(jQuery('.editnsfw').is(':checked')) {
         updateRequest.nsfw = '1';
     } else {
@@ -355,11 +360,11 @@ function saveRequest(updateRequest) {
 
     } else if (updateRequest.description == '') {
         alert("Description can not be blank!");
-        jQuery('.editdescription').val(thisRequest.description);
+        jQuery('#edit-description').val(thisRequest.description);
 
     } else if (updateRequest.title == '') {
         alert("Title can not be blank!");
-        jQuery('.edittitle').val(thisRequest.title);
+        jQuery('#edit-title').val(thisRequest.title);
 
     } else {
         // Do the update
@@ -375,12 +380,10 @@ function saveRequest(updateRequest) {
           complete: function ( response ) {
               if (response.responseJSON.success==true) {
                   // Update succeeded
-                  alert("Update successful!")
+                  jQuery("#loadingText").text('Success!')
                   jQuery("#requestarea").empty();
                   // Load the request again so user sees the Changes
-                  jQuery.when(getRequest()).done(function(e) {
-                      loadRequest();
-                  });
+                  location.reload();
               } else {
                   // Update failed
                   alert(response.responseJSON.errmsg);
@@ -529,29 +532,35 @@ function setHeight(fieldId) {
 // Admin functions
 
 function adminDenyRequest() {
+    jQuery("#loadingWindow").show();
     updateRequest = Object.assign({}, thisRequest);
     updateRequest.status = 'denied';
     updateRequest.status_reason = jQuery('#adminSelectDenyReason').val();
     jQuery.when(ajaxUpdateRequest(updateRequest)).done(function(e) {
+        jQuery("#loadingText").text("Success!");
         location.reload();
     });
 }
 
 function adminApproveRequest() {
+    jQuery("#loadingWindow").show();
     updateRequest = Object.assign({}, thisRequest);
     updateRequest.status = 'approved';
     jQuery.when(ajaxUpdateRequest(updateRequest)).done(function(e) {
+        jQuery("#loadingText").text("Success!");
         location.reload();
     });
 
 }
 
 function adminChangeRequestStatus() {
+    jQuery("#loadingWindow").show();
     updateRequest = Object.assign({}, thisRequest);
 
     if (jQuery('#adminSelectStatus').val() != '') {
         updateRequest.status = jQuery('#adminSelectStatus').val();
         jQuery.when(ajaxUpdateRequest(updateRequest)).done(function(e) {
+            jQuery("#loadingText").text("Success!");
             location.reload();
         });
     } else {
@@ -561,6 +570,7 @@ function adminChangeRequestStatus() {
 }
 
 function fixSocialMedia() {
+    jQuery("#loadingWindow").show();
     updateRequest = Object.assign({}, thisRequest);
     if (jQuery('#fixSocialMedia') == '') {
         alert("Please enter a social media link.");
@@ -569,17 +579,20 @@ function fixSocialMedia() {
     } else {
         updateRequest.social_media = jQuery('fixSocialMedia').val();
         jQuery.when(ajaxUpdateRequest(updateRequest)).done(function(e) {
+            jQuery("#loadingText").text("Success!");
             location.reload();
         });
     }
 }
 
 function deleteRequest () {
+    jQuery("#loadingWindow").show();
     updateRequest = Object.assign({}, thisRequest);
     if (confirm("Really delete? This can not be undone!")) {
         updateRequest.status = 'deleted';
         jQuery.when(ajaxUpdateRequest(updateRequest)).done(function(e) {
-            //location.reload();
+            jQuery("#loadingText").text("Success!");
+            location.reload();
         });
     }
 }
@@ -597,7 +610,6 @@ function ajaxUpdateRequest(updateRequest) {
       complete: function ( response ) {
           if (response.responseJSON.success==true) {
               // Update succeeded
-              alert("Update successful!")
               jQuery("#requestarea").empty();
               // Load the request again so user sees the Changes
               jQuery.when(getRequest()).done(function(e) {

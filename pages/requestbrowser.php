@@ -23,8 +23,8 @@ get_header(); ?>
   <thead>
     <tr id="requesttablefilters">
         <th class="filterrow"></th>
-        <th class="filterrow"><input id = "requesttitle" type="text"></input></th>
-        <th class="filterrow"><input id = "requestdesc" type="text"></input></th>
+        <th class="filterrow"><input id = "requesttitle" type="text" placeholder="Search by Title"></input></th>
+        <th class="filterrow"><input id = "requestdesc" type="text" placeholder="Search by Description"></input></th>
         <th class="filterrow"><button id = "searchbutton"> Search </button><br /><input type="checkbox" id="includensfw" value="1"><label for="includensfw">Include NSFW</label></th>
     <tr>
       <th>Requester</th>
