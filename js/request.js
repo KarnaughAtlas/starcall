@@ -2,7 +2,7 @@
 // File name: request.js
 // Description: Collection of scripts used when displaying a single request
 // Author: JSHayford
-// Version: 1.0
+// Version: 1.1
 //------------------------------------------------------------------------------
 
 var thisRequest = new Object();
@@ -235,7 +235,7 @@ function getRequest() {
 function loadRequest () {
     try {
         // If we did, load it
-        document.title = thisRequest.title + ' by ' + thisRequest.user_login;
+        document.title = escapeHtml(thisRequest.title) + ' by ' + thisRequest.user_login;
         // Put stuff in the document. Do more with this later
 
         var markup = '<h1>';
@@ -250,17 +250,17 @@ function loadRequest () {
             markup += '<strong>Original ';
         }
 
-        markup += 'request by </strong><a href="https://sylessae.com/user/' + thisRequest.user_login + '">' + thisRequest.user_login + '</a><br /><br />';
+        markup += 'request by </strong><a href="https://starcall.sylessae.com/user/' + thisRequest.user_login + '">' + thisRequest.user_login + '</a><br /><br />';
 
         if  (thisRequest.user_authorized) {
             markup += '<button class="editbutton"> Edit request </button><br /><br />';
         }
 
-        markup += "<strong>Description</strong><br />" + thisRequest.description +
+        markup += "<strong>Description</strong><br />" + escapeHtml(thisRequest.description) +
                   "<br /><br />";
 
         if (thisRequest.reference_links) {
-            markup += "<strong>References:</strong><br />" + thisRequest.reference_links + "<br /> <br />";
+            markup += "<strong>References:</strong><br />" + escapeHtml(thisRequest.reference_links) + "<br /> <br />";
               }
 
         jQuery("#requestarea").append(markup);
@@ -306,9 +306,9 @@ function editRequest() {
              '<button class="deleteRequestButton">Delete Request</button>';
 
     jQuery('#requestarea').append(markup);
-    jQuery('#edit-description').html(updateRequest.description);
-    jQuery('#edit-references').html(updateRequest.reference_links);
-    jQuery('#edit-title').val(updateRequest.title);
+    jQuery('#edit-description').html(escapeHtml(updateRequest.description));
+    jQuery('#edit-references').html(escapeHtml(updateRequest.reference_links));
+    jQuery('#edit-title').val(escapeHtml(updateRequest.title));
 
     if(updateRequest.nsfw == true) {
         jQuery('.editnsfw').prop('checked', true);
@@ -491,7 +491,7 @@ function makeComments(comments,div) {
         }
 
         markup += "</div><br />";
-        markup += "<span class='comment_text'>" +comments[i].comment_text + "</span><br />";
+        markup += "<span class='comment_text'>" + escapeHtml(comments[i].comment_text) + "</span><br />";
 
 
         if (comments[i].edit_date && comments[i].edit_date != comments[i].create_date) {
@@ -627,4 +627,17 @@ function ajaxUpdateRequest(updateRequest) {
       dataType: 'json'
     } );
 
+}
+
+function escapeHtml(text) {
+  if(text) {
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+      } else {
+        return '';
+      }
 }

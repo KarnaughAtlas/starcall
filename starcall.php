@@ -1222,7 +1222,7 @@ function starcall_enqueue () {
 
     wp_register_script('request_page',
                         plugins_url('js/request.js', __FILE__),
-                        array('jquery','wp-api'),'1.0', true);
+                        array('jquery','wp-api'),'1.1', true);
 
     wp_register_script('submit_request',
                         plugins_url('js/submitrequest.js', __FILE__),
@@ -1380,9 +1380,10 @@ function submit_gift() {
   if($giftUser) {
 
       // Successfully got the user
-      $giftTitle = 'Gift by <a href="https://sylessae.com/user/' . $giftUser->user_login . '">' . $giftUser->user_login . "</a>";
+      $giftTitle = 'Gift by <a href="https://starcall.sylessae.com/user/' . $giftUser->user_login . '">' . $giftUser->user_login . "</a>";
 
-      $postContent = "Gifted to " . $requestingUserData->user_login . " for request <a href='https://starcall.sylessae.com/request/?request_id=" . $thisRequest->request_id . "'>'" . $thisRequest->title . "'</a>.";
+      $postContent = 'Gifted to <a href="https://starcall.sylessae.com/user/' . $requestingUserData->user_login . '">' . $requestingUserData->user_login . "</a>" . " for request <a href='https://starcall.sylessae.com/request/?request_id=" . $thisRequest->request_id . "'>'" . $thisRequest->title . "'</a>.";
+
       if ($giftCaption) {
           $postContent .= "<br />'" . $giftCaption . "'";
       }
