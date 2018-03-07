@@ -1,13 +1,165 @@
+/* Theme customizations */
+
+button, input[type="button"], input[type="reset"], input[type="submit"] {
+  background: #232323;
+}
+
+.main-navigation li.current-menu-item a {
+    background-color:darkgray;
+}
+
+.main-navigation a:hover {
+    background-color: darkgray;
+    color: #fff;
+}
+
+.frontPageTitle {
+  width: 22%;
+  display: block;
+  padding-left: 15px;
+  padding-right: 15px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  margin-bottom: 3px;
+  font-family: "Ubuntu", sans-serif;
+}
+
+.frontPageHeader {
+  margin: none;
+
+}
+
+.page-entry-title, .frontPageTitle {
+  background-color: #232323;
+  color: #cacaca;
+}
+.page-entry-header, .archive-page-header, .search-page-header, .frontPageHeader {
+    border-bottom: 2px solid #232323;
+    margin-bottom: 1.5em;
+}
+
+/* Front page layout */
+.columnContainer {
+	display: table;
+
+}
+
+#rightContainerHeader {
+	background: white;
+
+	margin-bottom: 15px;
+	padding: 15px;
+}
+
+#leftContainer {
+	display: table-cell;
+	width: 75%;
+
+}
+
+#rightContainer {
+	display: table-cell;
+	width: 25%;
+}
+
+#postArchive {
+	width: 80%;
+	margin: auto;
+	padding-top: 15px;
+}
+
+#twitterFeed {
+	width: 80%;
+	margin: auto;
+	padding-top: 15px;
+    padding-left: 15px;
+}
+
+#masterGallery {
+
+}
+
+#latestRequests {
+	padding: 15px;
+
+	margin: 15px;
+}
+
+#latestGifts {
+	padding: 15px;
+}
+
+
+@media (max-width:800px) {
+  #leftContainer,#rightContainer {
+    width:100%;
+		display: inline-block;
+
+
+		/*The width is 100%, when the viewport is 800px or smaller*/
+  }
+
+
+.description,.br_create_date {
+        display:none;
+        width:0;
+        height:0;
+        opacity:0;
+        visibility: collapse;
+}
+
+}
+/* End front page layout */
+
+/* Gift window */
+#giftCaption, #giftNote {
+	border: 1px solid black;
+}
+
+#requesttable {
+	float: left;
+	border-collapse: collapse;
+	text-align: left;
+}
+
+#requestdesc, #requesttitle {
+	border: 2px solid black;
+}
+
+.deleteRequestButton {
+    float: right;
+}
+
+#requesttable {
+    border: none;
+}
+
+.filterrow {
+    background-color: white;
+    border : none;
+}
+
 .requestrow:hover {
-	background-color: black;
+	background-color: #232323;
 	color: white;
-	border: 10px solid black;
 	cursor: pointer;
 }
 
+#pagination {
+	width: 70%;
+	margin: auto;
+}
+
+.requestrow {
+	height: 60px;
+}
+
+.requester,td {
+	width: 150px;
+}
+
 .thispage {
-	background-color: black;
-	color: white;
+	background-color: darkgray;
 }
 
 .thispage:hover {
@@ -37,15 +189,18 @@
 	white-space: pre-line;
 }
 
-.request_comment {
-	border: 1px solid black;
+.request_container {
+	border-top: 1px dashed black;
+	border-left: 1px solid black;
 	padding: 5px;
-	margin: 5px;
+	margin-left: 20px;
+	margin-top: 15px;
 	white-space: pre-line;
 }
 
 .comment_controls, p {
-	float: right;
+	font-size: 10pt;
+	display: inline-block;
 }
 
 .comment_edit, .comment_delete {
@@ -57,9 +212,9 @@
 }
 
 #comment_pagination {
-	margin: auto;
-	width: 90%;
-	margin-top: 20px
+	float:right;
+	width: 50%;
+	margin-top: 10px
 }
 
 .edit_text {
@@ -68,4 +223,140 @@
 
 .create_date {
 	font-size: 9pt;
+}
+
+#commentarea, #requestarea, #newcommentarea, #giftarea, .rq_container {
+	width: 80%;
+	margin: auto;
+}
+
+#requestStatusBox {
+	border: 3px solid red;
+	text-align: center;
+	margin: auto;
+	width: 80%;
+	overflow: auto;
+}
+
+#userRequestStatus {
+
+}
+
+#admintoolbox {
+	border: 3px solid red;
+	text-align: center;
+	margin: auto;
+	width: 80%;
+	overflow: auto;
+}
+
+#admintools {
+	float: left;
+	width: 12.6%;
+	height: 100%;
+	min-width: 100px;
+
+}
+
+#admintoolslabel {
+	float:left;
+	width: 100%;
+	background: red;
+	color: white;
+}
+
+#adminbuttons {
+	display: block;
+	width: 100%;
+}
+
+#adminbuttons button {
+	display: block;
+	width: 100%;
+}
+
+#adminrequeststatus {
+	float: left;
+	width: 80%;
+}
+
+#adminWindowDenyExplanation {
+
+}
+
+#replyText {
+	border: 1px solid black;
+	height: 200px;
+	resize: none;
+}
+
+.custom-logo, .custom-logo-link {
+	width: 420px;
+	height: 112px;
+	max-height: 100%;
+}
+
+.nsfwtag {
+	color: red;
+}
+
+#giftarea, #commentarea {
+	border-top: 1px dashed black;
+	padding-top: 15px
+}
+
+.deleteRequestButton {
+    float: right;
+}
+
+#adminWindowSelectReason, #adminWindowText {
+	float: left;
+}
+
+#adminWindowText {
+	padding-left: 15px;
+	padding-top: 44px;
+}
+
+#newcomment {
+	border: 1px solid black;
+}
+
+ /* The Modal (background) */
+.modalWindow, .loadingWindow {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgb(0,0,0); /* Fallback color */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+/* Modal Content/Box */
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto; /* 15% from the top and centered */
+    padding: 20px;
+    border: 1px solid #888;
+    width: 60%; /* Could be more or less, depending on screen size */
+	overflow: auto;
+}
+
+/* The Close Button */
+.windowClose {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.windowClose:hover,
+.windowClose:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
 }

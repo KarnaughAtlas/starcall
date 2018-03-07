@@ -29,9 +29,65 @@ function Comment(id,requestId,authorId,replyId,text,createDate,editDate,
     }
 }
 
-function getCommentsByRequestId (id) {
+function getCommentsByRequestId (id,callback) {
     if (id) {
         var endpoint = '/wp-json/starcall/v1/comments/' + '?request_id=' + id;
+
+        jQuery.ajax( {
+        url: endpoint,
+        method: 'GET',
+        beforeSend: function ( xhr ) {
+         xhr.setRequestHeader( 'X-WP-Nonce', wpApiSettings.nonce );
+        },
+        success: function ( response ) {
+         callback(response);
+        },
+        failure: function ( response, err ) {
+         console.log("Ajax failure");
+         console.log(err);
+        },
+        cache: false,
+        dataType: 'json' });
+
+
+
+   } else {
+       // We didn't get an ID
+       // Return JSON with informative error
+       return (false);
+   }
+}
+
+function getCommentById (id,callback) {
+    if (id) {
+        var endpoint = '/wp-json/starcall/v1/comments/?comment_id=' + id;
+
+        jQuery.ajax( {
+        url: endpoint,
+        method: 'GET',
+        beforeSend: function ( xhr ) {
+         xhr.setRequestHeader( 'X-WP-Nonce', wpApiSettings.nonce );
+        },
+        success: function ( response ) {
+         callback(response);
+        },
+        failure: function ( response, err ) {
+         console.log("Ajax failure");
+         console.log(err);
+        },
+        cache: false,
+        dataType: 'json' });
+
+   } else {
+       // We didn't get an ID
+       // Return JSON with informative error
+       return (false);
+   }
+}
+
+function getCommentsByParentId (id,callback) {
+    if (id) {
+        var endpoint = '/wp-json/starcall/v1/comments/' + '?reply_id=' + id;
 
         return jQuery.ajax( {
         url: endpoint,
@@ -40,7 +96,7 @@ function getCommentsByRequestId (id) {
          xhr.setRequestHeader( 'X-WP-Nonce', wpApiSettings.nonce );
         },
         success: function ( response ) {
-         return(response.JSON);
+         callback(response);
         },
         failure: function ( response, err ) {
          console.log("Ajax failure");
@@ -55,17 +111,37 @@ function getCommentsByRequestId (id) {
    }
 }
 
-function postCommentAjax(comment) {
-    var endpoint = '/wp-json/starcall/v1/comments/';
+function postCommentAjax(id,callback) {
+    var endpoint = '/wp-json/starcall/v1/comments/?comment_id='+id;
     return jQuery.ajax( {
       url: endpoint,
-      method: 'POST',
+      method: 'DELETE',
       data: JSON.stringify(comment),
       beforeSend: function ( xhr ) {
           xhr.setRequestHeader( 'X-WP-Nonce', wpApiSettings.nonce );
       },
       complete: function ( response ) {
-          return(response);
+          callback(response);
+       },
+      failure: function ( response, err ) {
+          alert ("Error posting comment");
+      },
+      cache: false,
+      dataType: 'json'
+    } );
+}
+
+function deleteCommentAjax(comment,callback) {
+    var endpoint = '/wp-json/starcall/v1/comments/';
+    return jQuery.ajax( {
+      url: endpoint,
+      method: 'DELETE',
+      data: JSON.stringify(comment),
+      beforeSend: function ( xhr ) {
+          xhr.setRequestHeader( 'X-WP-Nonce', wpApiSettings.nonce );
+      },
+      complete: function ( response ) {
+          callback(response);
        },
       failure: function ( response, err ) {
           alert ("Error posting comment");

@@ -7,6 +7,13 @@
 
 var newRequestID;
 
+jQuery( document ).ready(function() {
+    jQuery('.whyShare').click(function(e) {
+        e.preventDefault();
+        jQuery('#whyShareWindow').show();
+    });
+});
+
 //------------------------------------------------------------------------------
 // On "submit request"
 //------------------------------------------------------------------------------

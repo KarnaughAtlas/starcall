@@ -21,7 +21,16 @@ jQuery( document ).ready(function() {
 jQuery('#requestdesc').on('keypress', function (e) {
    var code = e.keyCode || e.which;
    if (code==13) {
-       jQuery.when(getRequests(jQuery(this).val())).done(function(e) {
+       jQuery.when(getRequests(jQuery('#requesttitle').val(), jQuery(this).val(),jQuery('#includensfw').prop('checked'))).done(function(e) {
+           makePage(1);
+       });
+   }
+} );
+
+jQuery('#requesttitle').on('keypress', function (e) {
+   var code = e.keyCode || e.which;
+   if (code==13) {
+       jQuery.when(getRequests(jQuery(this).val(), jQuery('#requestdesc').val(),jQuery('#includensfw').prop('checked'))).done(function(e) {
            makePage(1);
        });
    }
@@ -29,17 +38,32 @@ jQuery('#requestdesc').on('keypress', function (e) {
 
 jQuery('#searchbutton').on( 'click', function ( e )  {
  e.preventDefault();
- jQuery.when(getRequests(jQuery('#requestdesc').val())).done(function(e) {
+ jQuery.when(getRequests(jQuery('#requesttitle').val(), jQuery('#requestdesc').val(),jQuery('#includensfw').prop('checked'))).done(function(e) {
      makePage(1);
  });
 } );
 
-function getRequests (filter) {
+function getRequests (title, desc, nsfw) {
 
-   if (filter) {
-       var endpoint = '/wp-json/starcall/v1/requests/' + '?desc=' + filter;
-   } else {
-       var endpoint = '/wp-json/starcall/v1/requests/'
+   jQuery('#loadingWindow').show();
+
+   var endpoint = '/wp-json/starcall/v1/requests/';
+   var filters = [];
+
+   if (desc) {
+       filters.push('desc=' + desc);
+   }
+
+   if(title) {
+       filters.push('title=' + title);
+   }
+
+   if (nsfw == 1) {
+       filters.push('nsfw=yes');
+   }
+
+   if (filters.length > 0) {
+       endpoint += '?' + filters.join('&');
    }
 
    return jQuery.ajax( {
@@ -65,6 +89,8 @@ function getRequests (filter) {
 
 function makePage (page) {
 
+    jQuery('#loadingWindow').hide();
+
     jQuery('#requesttable tbody').empty();
 
     if (requests.length == 0) {
@@ -77,12 +103,16 @@ function makePage (page) {
              i < (page * requests_per_page) &&
              i < requests.length; i++) {
 
-            markup = "<tr class='requestrow'><td>" +
+            markup = "<tr class='requestrow'><td class='requester'>" +
                                        requests[i].user_login + "</td>" +
-                     "<td class='title'>" + requests[i].title + "</td>" +
+                     "<td class='title'>";
+            if (requests[i].nsfw == true) {
+                markup += '<span class="nsfwtag">[18+] </span>'
+            }
+            markup += requests[i].title.slice(0,30) + "</td>" +
                      "<td class='description'>" +
-                                 requests[i].description.slice(0,30) + "</td>" +
-                     "<td class='create_date'>" +
+                                 requests[i].description.slice(0,60) + " ...</td>" +
+                     "<td class='br_create_date'>" +
                                              requests[i].create_date + "</td>" +
                      "<td class='request_id' style='display:none'>" +
                      requests[i].request_id + "</td></tr>";
