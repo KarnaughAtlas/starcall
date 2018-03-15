@@ -322,6 +322,33 @@ button, input[type="button"], input[type="reset"], input[type="submit"] {
 	border: 1px solid black;
 }
 
+#areYouLost {
+background-color: lavenderblush;
+
+text-align: center;
+}
+
+/* Are you lost box */
+#areYouLost:hover {
+    cursor: pointer;
+}
+
+#getStartedBox {
+padding: 3px;
+background-color: lavenderblush;
+margin-top: 5px;
+overflow: auto;
+padding-top: 5px;
+display: none;
+}
+
+#getStartedChecklist {
+
+width: 40%;
+margin: auto;
+margin-top: 10px;
+}
+
  /* The Modal (background) */
 .modalWindow, .loadingWindow {
     display: none; /* Hidden by default */
