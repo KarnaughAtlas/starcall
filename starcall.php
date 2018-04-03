@@ -1,4 +1,4 @@
-<?php
+:<?php
 /**
  * Plugin Name: Starcall site-specific plugin
  * Plugin URI: https://github.com/iamsayed/read-me-later
@@ -1383,6 +1383,8 @@ function submit_gift() {
       $giftTitle = 'Gift by <a href="https://starcall.sylessae.com/user/' . $giftUser->user_login . '">' . $giftUser->user_login . "</a>";
 
       $postContent = 'Gifted to <a href="https://starcall.sylessae.com/user/' . $requestingUserData->user_login . '">' . $requestingUserData->user_login . "</a>" . " for request <a href='https://starcall.sylessae.com/request/?request_id=" . $thisRequest->request_id . "'>'" . $thisRequest->title . "'</a>.";
+      $giftPageLink = home_url('/') . 'gift/?gift_id=' . $attachment_id;
+      $postContent = '<br /><a href="' . $giftPageLink . '">Leave a commment on this gift</a>';
 
       if ($giftCaption) {
           $postContent .= "<br />'" . $giftCaption . "'";
@@ -1484,6 +1486,9 @@ function starcall_page_templates( $page_template )
         $page_template = dirname( __FILE__ ) . '/pages/rq_submit.php';
     }
 
+    if ( is_page( 'gift' ) ) {
+        $page_template = dirname( __FILE__ ) . '/pages/gift.php';
+    }
 
     return $page_template;
 }
