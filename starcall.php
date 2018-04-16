@@ -1,4 +1,4 @@
-:<?php
+<?php
 /**
  * Plugin Name: Starcall site-specific plugin
  * Plugin URI: https://github.com/iamsayed/read-me-later
@@ -39,17 +39,17 @@ function make_comment_array($params,$currentUser,$userIsAdmin) {
 
      if(isset($params['request_id'])) {
          $filters[] = 'parent_id = ' . $params['request_id'];
-         $filters[] = 'comment_type = request';
+         $filters[] = 'comment_type = "request"';
      }
 
      if(isset($params['reply_id'])) {
          $filters[] = 'parent_id = ' . $params['reply_id'];
-         $filters[] = 'comment_type = reply';
+         $filters[] = 'comment_type = "reply"';
      }
 
      if(isset($params['gift_id'])) {
          $filters[] = 'parent_id = ' . $params['gift_id'];
-         $filters[] = 'comment_type = gift';
+         $filters[] = 'comment_type = "gift"';
      }
 
      if(isset($params['comment_id'])) {
@@ -766,7 +766,7 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
         return($comments);
     }
 
-    public function post_comment (WP_REST_Request $request) {
+    public function post_comment_handler (WP_REST_Request $request) {
     //------------------------------------------------------------------------
     // Function: post_comment_handler
     //
@@ -1238,14 +1238,7 @@ function submit_gift() {
 
       // Successfully got the user
       $giftTitle = 'Gift by <a href="https://starcall.sylessae.com/user/' . $giftUser->user_login . '">' . $giftUser->user_login . "</a>";
-
-      $postContent = 'Gifted to <a href="https://starcall.sylessae.com/user/' . $requestingUserData->user_login . '">' . $requestingUserData->user_login . "</a>" . " for request <a href='https://starcall.sylessae.com/request/?request_id=" . $thisRequest->request_id . "'>'" . $thisRequest->title . "'</a>.";
-      $giftPageLink = home_url('/') . 'gift/?gift_id=' . $attachment_id;
-      $postContent = '<br /><a href="' . $giftPageLink . '">Leave a comment on this gift</a>';
-
-      if ($giftCaption) {
-          $postContent .= "<br />'" . $giftCaption . "'";
-      }
+      $postContent = 'placeholder';
 
       $postArr = array(
            'post_title' => $giftTitle,
@@ -1258,6 +1251,25 @@ function submit_gift() {
           echo 'It broke';
       } else {
           echo 'Success';
+
+          // Update the post content with the comment link
+          $postContent = 'Gifted to <a href="https://starcall.sylessae.com/user/' . $requestingUserData->user_login . '">' . $requestingUserData->user_login . "</a>" . " for request <a href='https://starcall.sylessae.com/request/?request_id=" . $thisRequest->request_id . "'>'" . $thisRequest->title . "'</a>.";
+
+          if ($giftCaption) {
+              $postContent .= "<br />'" . $giftCaption . "'";
+          }
+
+          $giftPageLink = home_url('/') . 'gift/?gift_id=' . $attachment_id;
+          $postContent .= '<br /><a href="' . $giftPageLink . '">Comments</a>';
+
+          $postArr = array(
+               'ID' => $attachment_id,
+               'post_content' => $postContent
+          );
+
+          wp_update_post($postArr);
+
+
           // Now do the foogallery_attachments meta
           $galleryAttachments = get_post_meta($galleryPostId, 'foogallery_attachments', true);
           $galleryAttachments[] = $attachment_id;

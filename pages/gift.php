@@ -167,10 +167,6 @@ function getGiftComments($params) {
     }
 }
 
-
-
-
-
 // Get the footer
 get_footer();
 ?>

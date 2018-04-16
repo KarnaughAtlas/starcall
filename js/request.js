@@ -410,12 +410,13 @@ function submitComment (text,parent) {
     newComment.comment_text = text;
     if( parent ) {
         // This is a reply, so we need to blank the request ID and include the parent
-        newComment.request_id = '';
-        newComment.reply_id = parent;
+        newComment.comment_type = 'reply';
+        newComment.parent_id = parent;
 
     } else {
         // This is a top-level comment on the request
-        newComment.request_id = thisRequest.request_id;
+        newComment.parent_id = thisRequest.request_id;
+        newComment.comment_type = 'request';
     }
 
     if (newComment.comment_text != '') {
