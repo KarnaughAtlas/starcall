@@ -29,6 +29,9 @@ function Comment(id,requestId,authorId,replyId,text,createDate,editDate,
     }
 }
 
+var replying = false;
+var editing = false;
+
 function getCommentsByRequestId (id,callback) {
     if (id) {
         var endpoint = '/wp-json/starcall/v1/comments/' + '?request_id=' + id;
@@ -211,10 +214,59 @@ jQuery('.comment_reply').click(function(e) {
             var commentDiv = e.target.parentElement.parentElement;
             var text = jQuery('#replyText').val();
             var id = commentDiv.getElementsByClassName('commentID')[0].innerHTML;
-            submitComment(text,id);
+            var postCommentObj = new Object();
+            postCommentObj.comment_text = text;
+            postCommentObj.comment_type = 'reply';
+            postCommentObj.parent_id = id;
+            postCommentAjax(postCommentObj, function(e){
+                location.reload();
+            });
             replying = false;
         });
     } else {
         alert("You are already replying to a comment!");
     }
 });
+
+function editComment(commentDiv,commentID) {
+    // Turn on the editing flag; we can only edit one at a time
+    editing = true;
+    //Save original HTML so we can put it back if user cancels
+
+    // Get the text from the span to pre-load the editor
+    var text = commentDiv.querySelector(".comment_text").innerHTML;
+    commentDiv.innerHTML = "";
+    markup = "<textarea id='edit_comment'>" + text +
+    "</textarea><br />"
+    markup += "<button class='saveEdit'>Save</button>"
+    markup += "<button class='cancelEdit'>Cancel</button>"
+
+    jQuery(commentDiv).append(markup);
+    // Set the height of the text box to fit comment
+    setHeight("edit_comment");
+    jQuery(".saveEdit").click(function(e) {
+
+        getCommentById(commentID,function(comment){
+            editCommentObj = comment;
+            newText = commentDiv.querySelector("#edit_comment").value;
+            editCommentObj[0].comment_text = newText;
+            // Get rid of replies so the server code doesn't think it's an array
+            postCommentAjax(editCommentObj[0] , function(e){
+                location.reload();
+            });
+        });
+    });
+
+    jQuery(".cancelEdit").click(function(e) {
+        // Just reload the page
+        if (confirm("Discard changes?")) {
+            loadComments();
+        }
+    });
+
+        editing = false;
+}
+
+function setHeight(fieldId) {
+    document.getElementById(fieldId).style.height = document.getElementById(fieldId).scrollHeight+'px';
+}
