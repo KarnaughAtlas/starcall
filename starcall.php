@@ -1280,6 +1280,9 @@ add_action( 'wp_enqueue_scripts', 'starcall_enqueue' );
 add_action( 'admin_post_submit_gift', 'submit_gift');
 add_action('admin_post_nopriv_submit_gift','submit_gift');
 
+add_action( 'admin_post_submit_gift_comment', 'submit_gift_comment');
+add_action('admin_post_nopriv_submit_gift_comment','submit_gift_comment');
+
 function submit_gift() {
 
     global $wpdb;
@@ -1311,7 +1314,7 @@ function submit_gift() {
     $requestID = $_POST['requestId'];
 
     // Does the gallery exist? Search for a post with the appropriate title
-        $galleryTitle = "gift_gallery_" . $requestID;
+    $galleryTitle = "gift_gallery_" . $requestID;
 
     // Build the query
 
@@ -1445,6 +1448,49 @@ function submit_gift() {
         // User is not logged in
         echo("You must be logged in to do that.");
     }
+}
+
+function submit_gift_comment() {
+
+    global $wpdb;
+
+    // Get data out of the $_POST array
+    $giftCommentText = $_POST['giftCommentText'];
+    $giftId = $_POST['giftId'];
+
+    $currentUser = wp_get_current_user();
+    $giftUrl = get_site_url() . '/gift/?gift_id=' . $giftId;
+
+    // We're using the wpdb object for database access,
+    // so we need to build a few arrays for it.
+
+    // Set the table we're going to update
+
+    $table = 'wpsc_rq_gift_comments';
+
+    // Build data array for fields to update
+
+    $data = array(
+                'gift_id' => $giftId,
+              'author_id' => $currentUser->ID,
+           'comment_text' => $giftCommentText,
+              'edit_user' => $currentUser->ID,
+        'comment_status' => 'approved'
+            );
+
+        // Now we can do the update. Success should have the total
+    // rows affected.
+    $success = $wpdb->insert( $table, $data);
+
+    // Do success error handling
+
+    // Email gift submitter with comment notification
+
+    wp_redirect( $giftUrl );
+
+    exit;
+    return;
+
 }
 
 function get_comment_request_page($commentID) {

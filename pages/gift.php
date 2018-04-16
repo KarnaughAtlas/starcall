@@ -17,6 +17,7 @@ $giftPost = get_post($giftId);
 
 ?>
 
+<div class="gift-body">
 <div class="gift-header-area">
         <h3><?php echo($giftPost->post_title);?></h3>
 </div>
@@ -29,31 +30,60 @@ echo("<img class='gift-full-size' src='" . $giftPost->guid . "'>");
 // get comments from db
 $comments = new \stdClass();
 $params['gift_id'] = $giftId;
-$comments = getGiftComments($params);
-makeComments($comments);
+getGiftComments($params);
+if (current_user_can('read') ) {
+    giftCommentForm();
+} else {
+    echo("Log in to submit a comment.");
+}
 
 // Do the comment reply area
-echo("<div id='newcommentarea'>");
+
+function giftCommentForm() {
+
+?>
+<div id='gift-comment-area'>
+
+<form id="giftCommentForm" action="<?php echo esc_url( admin_url('admin-post.php') ); ?>" method="post" enctype="multipart/form-data">
+    <strong>Submit a comment</strong><br />
+    <textarea name="giftCommentText" id="giftCommentText" form="giftCommentForm"></textarea>
+    <br />
+    <br />
+    <input type="submit" id="submitGiftCommentButton" value="Submit comment" name="submitGiftComment"></input>
+    <input type="hidden" name="action" value="submit_gift_comment"></input>
+    <input type="hidden" name="giftId" value=" <?php echo($_GET['gift_id']); ?>"></input>
+</form>
+
+</div>
+</div> <!-- Gift body >
+<?php
+
 echo("<br /><span class=submit_reply><strong>Submit a comment</strong></span>");
 echo("<br /><textarea id='newcomment'></textarea>");
 echo("<br /><button id='submitcomment'>Submit comment</button>");
 
+}
+
+
+
 function getGiftComments($params) {
+
+    global $wpdb;
 
     $userIsAdmin = (in_array('starcall_moderator',wp_get_current_user()->roles) || in_array('administrator',wp_get_current_user()->roles));
     $currentUser = get_current_user_id();
 
-    $sql = 'SELECT comment_id,request_id,author_id, u1.user_login AS author,
+    $sql = 'SELECT comment_id,gift_id,author_id, u1.user_login AS author,
                    reply_id,comment_text, create_date, edit_user,
                    u2.user_login AS editing_user, edit_date, comment_status
-            FROM wpsc_rq_comments AS comments
+            FROM wpsc_rq_gift_comments AS comments
             JOIN wp_users AS u1 ON comments.author_id = u1.ID
             LEFT JOIN wp_users AS u2 ON comments.edit_user = u2.ID';
 
     if($params) {
         // Build the WHERE clause
         if(isset($params['gift_id'])) {
-            $filters[] = 'author_id = ' . $params['user_id'];
+            $filters[] = 'gift_id = ' . $params['gift_id'];
         }
 
         if(isset($params['reply_id'])) {
@@ -95,13 +125,13 @@ function getGiftComments($params) {
             // Put the comment on the page
             echo("<div id='" . $containerID . "' class = 'request_container'>");
             echo("<div id='" . $divID . "' class='request_comment'>");
-            echo("<strong>" . $comments->author . "</strong>");
-            echo(" | <span class='create_date'>".$comments->create_date ." </span> | ");
+            echo("<strong>" . $comment->author . "</strong>");
+            echo(" | <span class='create_date'>".$comment->create_date ." </span> | ");
 
             echo("<div class='comment_controls'><span class='comment_reply'>reply</span>");
 
             // If user is authorized, show the edit buttons
-            if ($comments->user_authorized) {
+            if ($comment->user_authorized) {
                 echo("<span class='comment_edit'>edit</span><span class='comment_delete'>delete</span>");
             }
 

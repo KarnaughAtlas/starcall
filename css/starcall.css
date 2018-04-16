@@ -225,9 +225,16 @@ button, input[type="button"], input[type="reset"], input[type="submit"] {
 	font-size: 9pt;
 }
 
-#commentarea, #requestarea, #newcommentarea, #giftarea, .rq_container {
+#commentarea, #requestarea, #newcommentarea, #giftarea, .gift-body, .rq_container {
 	width: 80%;
 	margin: auto;
+}
+
+.gift-full-size {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    width: 80%;
 }
 
 #requestStatusBox {
@@ -318,7 +325,7 @@ button, input[type="button"], input[type="reset"], input[type="submit"] {
 	padding-top: 44px;
 }
 
-#newcomment {
+#newcomment,#giftCommentText {
 	border: 1px solid black;
 }
 
