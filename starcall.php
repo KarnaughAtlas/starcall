@@ -24,9 +24,9 @@ function make_comment_array($params,$currentUser,$userIsAdmin) {
   global $wpdb;
 
  // Initialize SQL query
- $sql = 'SELECT comment_id,request_id,author_id, u1.user_login AS author,
+ $sql = 'SELECT comment_id,parent_id,author_id, u1.user_login AS author,
                 reply_id,comment_text, create_date, edit_user,
-                u2.user_login AS editing_user, edit_date, comment_status
+                u2.user_login AS editing_user, edit_date, comment_status,comment_type
          FROM wpsc_rq_comments AS comments
          JOIN wp_users AS u1 ON comments.author_id = u1.ID
          LEFT JOIN wp_users AS u2 ON comments.edit_user = u2.ID';
@@ -38,11 +38,18 @@ function make_comment_array($params,$currentUser,$userIsAdmin) {
      }
 
      if(isset($params['request_id'])) {
-         $filters[] = 'request_id = ' . $params['request_id'];
+         $filters[] = 'parent_id = ' . $params['request_id'];
+         $filters[] = 'comment_type = request';
      }
 
      if(isset($params['reply_id'])) {
-         $filters[] = 'reply_id = ' . $params['reply_id'];
+         $filters[] = 'parent_id = ' . $params['reply_id'];
+         $filters[] = 'comment_type = reply';
+     }
+
+     if(isset($params['gift_id'])) {
+         $filters[] = 'parent_id = ' . $params['gift_id'];
+         $filters[] = 'comment_type = gift';
      }
 
      if(isset($params['comment_id'])) {
@@ -84,10 +91,9 @@ function make_comment_array($params,$currentUser,$userIsAdmin) {
 }
 
 //------------------------------------------------------------------------
-// Function: make_comment_array
+// Function: make_giftt_array
 //
-// This request gets comments. Initial support only for retrieving by
-/// user ID, reply ID and request ID.
+// This request gets gifts
 //
 //------------------------------------------------------------------------
 function make_gift_array($params,$currentUser,$userIsAdmin) {
@@ -182,7 +188,7 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
 
             array(
                 'methods'         => WP_REST_Server::EDITABLE,
-                'callback'        => array( $this, 'post_comment' ) ),
+                'callback'        => array( $this, 'post_comment_handler' ) ),
 
             array(
                 'methods'         => WP_REST_Server::DELETABLE,
@@ -762,7 +768,7 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
 
     public function post_comment (WP_REST_Request $request) {
     //------------------------------------------------------------------------
-    // Function: post_comment
+    // Function: post_comment_handler
     //
     // TODO add description and other stuff here
     //
@@ -781,159 +787,7 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
 
     if($commentToUpdate !== null) {
         // Successfully got the post body
-      if (isset($commentToUpdate->comment_id)) {
-          // We're updating an existing comment
-          // First, let's get the comment we're changing
-          $sql = "SELECT * FROM wpsc_rq_comments " .
-                 "WHERE comment_id = " . $commentToUpdate->comment_id;
-
-          $existingComment = $wpdb->get_row($sql);
-
-          if ($existingComment) {
-              // Found it. Make sure the user is allowed to do this
-              // Must be mod, admin, or the owner of the comment
-              $currentUser = get_current_user_id();
-
-              if (in_array('starcall_moderator',wp_get_current_user()->roles) || in_array('administrator',wp_get_current_user()->roles) ||
-                  $currentUser == $existingComment->author_id) {
-                  // Do the update
-
-                  // We're using the wpdb object for database access,
-                  // so we need to build a few arrays for it.
-
-                  // Set the table we're going to update
-
-                  $table = 'wpsc_rq_comments';
-
-                  // Build data array for fields to update
-
-                  $data = array(
-                    'request_id' => $commentToUpdate->request_id,
-                     'author_id' => $commentToUpdate->author_id,
-                      'reply_id' => $commentToUpdate->reply_id,
-                  'comment_text' => $commentToUpdate->comment_text,
-                'comment_status' => $commentToUpdate->comment_status,
-                     'edit_user' => $currentUser
-                 );
-
-                 // Build the where array
-                 $where = array('comment_id' => $commentToUpdate->comment_id);
-
-                 // Now we can do the update. Success should have the total
-                 // rows affected.
-                 $success = $wpdb->update( $table, $data, $where);
-
-                 if ($success) {
-                     // We did it, guys
-                     $response->success = true;
-                     $response->rows_updaded = $success;
-
-                 } else {
-                     // Update failed
-                     write_log("ERROR: wpdb->update barfed.");
-                     write_log("Comment ID: " . $commentToUpdate->comment_id);
-                     write_log($data);
-
-                     $response->success = false;
-                     $response->errmsg = 'Error updating comment';
-                 }
-
-              } else {
-                  // User is not authorized, send error
-                  $response->success = false;
-                  $response->errmsg = 'User is not authorized';
-              }
-
-          } else {
-              // Didn't find the comment, send error
-              $response->success = false;
-              $response->errmsg = 'Comment with ID ' . $commentToUpdate->comment_id . ' not found';
-          }
-      } else {
-          // We're submitting a new comment. Do we have a valid user?
-          if (current_user_can('read')) {
-              // Insert comment
-              // We're using the wpdb object for database access,
-              // so we need to build a few arrays for it.
-
-              // Set the table
-              $table = 'wpsc_rq_comments';
-              $commentStatus = 'approved';
-
-              $currentUser = get_current_user_id();
-              if (isset($commentToUpdate->reply_id)) {
-                  $replyID = $commentToUpdate->reply_id;
-              } else {
-                  $replyID = 0;
-              }
-
-              // Build data array for fields to insert
-              $data = array(
-                  'request_id' => $commentToUpdate->request_id,
-                   'author_id' => $currentUser,
-                    'reply_id' => $replyID,
-                'comment_text' => $commentToUpdate->comment_text,
-              'comment_status' => $commentStatus,
-             );
-
-              // Now we can do the insert. Success here will have the
-              // total number of rows affected, which hopefully will be 1
-              $success = $wpdb->insert( $table, $data);
-
-              if($success) {
-                  // Insert successful!
-                  $response->success = true;
-                  $response->new_id = $wpdb->insert_id;
-
-                  // Email the appropriate user
-                  $commentAuthor = get_userdata($currentUser);
-                  $requestID = get_comment_request_page($wpdb->insert_id);
-                  $url = 'https://starcall.sylessae.com/request/?request_id=' . $requestID;
-
-                  if ($replyID != 0) {
-                      // This is a reply, so notify the original comment author
-                      $sql = "SELECT * FROM wpsc_rq_comments " .
-                             "WHERE reply_id = " . $replyID;
-
-                      $theComment = $wpdb->get_row($sql);
-                      $notifyUser = get_userdata($theComment->author_id);
-                      $subject = $commentAuthor->user_login . " has replied to your comment.";
-                      $message = "Dear " . $notifyUser->user_login . ",\r\n\r\n";
-                      $message .= $commentAuthor->user_login . " has replied to your comment.";
-                      $message .= "\r\n\r\nYou can view the original request here: " . $url;
-
-                  } else {
-                      // This is a top-level comment, notify the requester
-                      $sql = "SELECT * FROM wpsc_rq_requests " .
-                             "WHERE request_id = " . $commentToUpdate->request_id;
-
-                      $theRequest = $wpdb->get_row($sql);
-                      $notifyUser = get_userdata($theRequest->user_id);
-
-                      $subject = $commentAuthor->user_login . " has commented on your request.";
-                      $message = "Dear " . $notifyUser->user_login . ",\r\n\r\n";
-                      $message .= $commentAuthor->user_login . " has commented on your request.";
-                      $message .= "\r\n\r\nYou can view the request here: " . $url;
-                  }
-
-                  $email = $notifyUser->user_email;
-                  $headers = "From: noreply@sylessae.com";
-
-                  $message .= "\r\n\r\nDo not reply to this email. This message was automatically generated and this inbox is unmonitored.";
-                  mail($email,$subject,$message,$headers);
-
-              } else {
-                  // Error inserting
-                  $response->success = false;
-                  $response->errmsg = 'Error occurred during insert';
-              }
-
-          } else {
-              // User is not valid or not logged in
-              $response->success = false;
-              $response->errmsg = 'Invalid user - are you logged in?';
-          }
-      }
+        $response = post_comment($commentToUpdate);
     } else {
       // We didn't get the post body
       $response->success = false;
@@ -1387,7 +1241,7 @@ function submit_gift() {
 
       $postContent = 'Gifted to <a href="https://starcall.sylessae.com/user/' . $requestingUserData->user_login . '">' . $requestingUserData->user_login . "</a>" . " for request <a href='https://starcall.sylessae.com/request/?request_id=" . $thisRequest->request_id . "'>'" . $thisRequest->title . "'</a>.";
       $giftPageLink = home_url('/') . 'gift/?gift_id=' . $attachment_id;
-      $postContent = '<br /><a href="' . $giftPageLink . '">Leave a commment on this gift</a>';
+      $postContent = '<br /><a href="' . $giftPageLink . '">Leave a comment on this gift</a>';
 
       if ($giftCaption) {
           $postContent .= "<br />'" . $giftCaption . "'";
@@ -1452,8 +1306,6 @@ function submit_gift() {
 
 function submit_gift_comment() {
 
-    global $wpdb;
-
     // Get data out of the $_POST array
     $giftCommentText = $_POST['giftCommentText'];
     $giftId = $_POST['giftId'];
@@ -1466,21 +1318,17 @@ function submit_gift_comment() {
 
     // Set the table we're going to update
 
-    $table = 'wpsc_rq_gift_comments';
+    $table = 'wpsc_rq_comments';
 
     // Build data array for fields to update
+    $giftComment->parent_id = $giftId;
+    $giftComment->comment_text = $giftCommentText;
+    $giftComment->comment_type = 'gift';
 
-    $data = array(
-                'gift_id' => $giftId,
-              'author_id' => $currentUser->ID,
-           'comment_text' => $giftCommentText,
-              'edit_user' => $currentUser->ID,
-        'comment_status' => 'approved'
-            );
+    $response = post_comment($giftComment);
 
-        // Now we can do the update. Success should have the total
+    // Now we can do the update. Success should have the total
     // rows affected.
-    $success = $wpdb->insert( $table, $data);
 
     // Do success error handling
 
@@ -1493,23 +1341,6 @@ function submit_gift_comment() {
 
 }
 
-function get_comment_request_page($commentID) {
-    // This function gets the request page that a comment is on; it has to
-    // recurse to find it since replies don't list the request ID to prevent
-    // them from also appearing on the top level
-    global $wpdb;
-
-    $sql = "SELECT * FROM wpsc_rq_comments " .
-           "WHERE comment_id = " . $commentID;
-    $thisComment = $wpdb->get_row($sql);
-    if($thisComment->request_id != 0) {
-        // found it, return
-        return($thisComment->request_id);
-    } else {
-        // we must go deeper
-        return(get_comment_request_page($thisComment->reply_id));
-    }
-}
 
 // Custom page templates
 
@@ -1537,6 +1368,184 @@ function starcall_page_templates( $page_template )
     }
 
     return $page_template;
+}
+
+function post_comment($commentToUpdate) {
+
+    global $wpdb;
+
+    if (isset($commentToUpdate->comment_id)) {
+        // We're updating an existing comment
+        // First, let's get the comment we're changing
+        $sql = "SELECT * FROM wpsc_rq_comments " .
+               "WHERE comment_id = " . $commentToUpdate->comment_id;
+
+        $existingComment = $wpdb->get_row($sql);
+
+        if ($existingComment) {
+            // Found it. Make sure the user is allowed to do this
+            // Must be mod, admin, or the owner of the comment
+            $currentUser = get_current_user_id();
+
+            if (in_array('starcall_moderator',wp_get_current_user()->roles) || in_array('administrator',wp_get_current_user()->roles) ||
+                $currentUser == $existingComment->author_id) {
+                // Do the update
+
+                // We're using the wpdb object for database access,
+                // so we need to build a few arrays for it.
+
+                // Set the table we're going to update
+
+                $table = 'wpsc_rq_comments';
+
+                // Build data array for fields to update
+
+                $data = array(
+                   'parent_id' => $commentToUpdate->parent_id,
+                   'author_id' => $commentToUpdate->author_id,
+                'comment_text' => $commentToUpdate->comment_text,
+              'comment_status' => $commentToUpdate->comment_status,
+                   'edit_user' => $currentUser
+               );
+
+               // Build the where array
+               $where = array('comment_id' => $commentToUpdate->comment_id);
+
+               // Now we can do the update. Success should have the total
+               // rows affected.
+               $success = $wpdb->update( $table, $data, $where);
+
+               if ($success) {
+                   // We did it, guys
+                   $response->success = true;
+                   $response->rows_updaded = $success;
+
+               } else {
+                   // Update failed
+                   write_log("ERROR: wpdb->update barfed.");
+                   write_log("Comment ID: " . $commentToUpdate->comment_id);
+                   write_log($data);
+
+                   $response->success = false;
+                   $response->errmsg = 'Error updating comment';
+               }
+
+            } else {
+                // User is not authorized, send error
+                $response->success = false;
+                $response->errmsg = 'User is not authorized';
+            }
+
+        } else {
+            // Didn't find the comment, send error
+            $response->success = false;
+            $response->errmsg = 'Comment with ID ' . $commentToUpdate->comment_id . ' not found';
+        }
+    } else {
+        // We're submitting a new comment. Do we have a valid user?
+        if (current_user_can('read')) {
+            // Insert comment
+            // We're using the wpdb object for database access,
+            // so we need to build a few arrays for it.
+
+            // Set the table
+            $table = 'wpsc_rq_comments';
+            $commentStatus = 'approved';
+
+            $currentUser = get_current_user_id();
+
+            // Build data array for fields to insert
+            $data = array(
+                 'parent_id' => $commentToUpdate->parent_id,
+                 'author_id' => $currentUser,
+              'comment_text' => $commentToUpdate->comment_text,
+            'comment_status' => $commentStatus,
+             'comment_type' => $commentToUpdate->comment_type
+           );
+
+            // Now we can do the insert. Success here will have the
+            // total number of rows affected, which hopefully will be 1
+            $success = $wpdb->insert( $table, $data);
+
+            if($success) {
+                // Insert successful!
+                $response->success = true;
+                $response->new_id = $wpdb->insert_id;
+
+                // Email the appropriate user
+                $commentAuthor = get_userdata($currentUser);
+
+                // get the URL
+
+                if ($commentToUpdate->comment_type == 'reply') {
+
+                    $commentTopParent = get_comment_top_parent($wpdb->insert_id);
+                    if ($commentTopParent['comment_type'] == 'request') {
+                        // This comment is on a request page, so do that link
+                        $url = get_site_url() . '/request/?request_id=' . $commentTopParent['parent_id'];
+                    } else {
+                        // This comment is on a gift page, so do that link
+                        $url = get_site_url() . '/gift/?gift_id=' . $commentTopParent['parent_id'];
+                    }
+
+                    // This is a reply, so notify the original comment author
+                    $sql = "SELECT * FROM wpsc_rq_comments " .
+                           "WHERE comment_id = " . $commentTopParent['parent_id'];
+
+                    $theComment = $wpdb->get_row($sql);
+                    $notifyUser = get_userdata($theComment->author_id);
+                    $subject = $commentAuthor->user_login . " has replied to your comment.";
+                    $message = "Dear " . $notifyUser->user_login . ",\r\n\r\n";
+                    $message .= $commentAuthor->user_login . " has replied to your comment.";
+                    $message .= "\r\n\r\nYou can view the original request here: " . $url;
+
+                } else {
+                    // This is a top-level comment, notify the requester
+
+                    if ($commentToUpdate->comment_type == 'request') {
+                        // Comment is top-level on a request
+                        $sql = "SELECT * FROM wpsc_rq_requests " .
+                               "WHERE request_id = " . $commentToUpdate->parent_id;
+                        $theRequest = $wpdb->get_row($sql);
+                        $notifyUser = get_userdata($theRequest->user_id);
+                        $subjectType = 'request';
+                        $url = get_site_url() . '/request/?request_id=' . $commentToUpdate->parent_id;
+
+                    } else {
+                        // Comment is top-level on a gift
+                        $giftPost = get_post($commentToUpdate->parent_id);
+                        $notifyUser = get_userdata($giftPost->post_author);
+                        write_log($notifyUser);
+                        $subjectType = 'gift';
+                        $url = get_site_url() . '/gift/?gift_id=' . $commentToUpdate->parent_id;
+                    }
+
+                    $subject = $commentAuthor->user_login . " has commented on your " . $subjectType . ".";
+                    $message = "Dear " . $notifyUser->user_login . ",\r\n\r\n";
+                    $message .= $commentAuthor->user_login . " has commented on your " . $subjectType . ".";
+                    $message .= "\r\n\r\nYou can view the request here: " . $url;
+                }
+
+                $email = $notifyUser->user_email;
+                $headers = "From: noreply@sylessae.com";
+
+                $message .= "\r\n\r\nDo not reply to this email. This message was automatically generated and this inbox is unmonitored.";
+                mail($email,$subject,$message,$headers);
+
+            } else {
+                // Error inserting
+                $response->success = false;
+                $response->errmsg = 'Error occurred during insert';
+            }
+
+        } else {
+            // User is not valid or not logged in
+            $response->success = false;
+            $response->errmsg = 'Invalid user - are you logged in?';
+        }
+    }
+
+    return($response);
 }
 
 ?>

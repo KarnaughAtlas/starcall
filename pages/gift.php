@@ -73,21 +73,23 @@ function getGiftComments($params) {
     $userIsAdmin = (in_array('starcall_moderator',wp_get_current_user()->roles) || in_array('administrator',wp_get_current_user()->roles));
     $currentUser = get_current_user_id();
 
-    $sql = 'SELECT comment_id,gift_id,author_id, u1.user_login AS author,
+    $sql = 'SELECT comment_id,parent_id,author_id, u1.user_login AS author,
                    reply_id,comment_text, create_date, edit_user,
                    u2.user_login AS editing_user, edit_date, comment_status
-            FROM wpsc_rq_gift_comments AS comments
+            FROM wpsc_rq_comments AS comments
             JOIN wp_users AS u1 ON comments.author_id = u1.ID
             LEFT JOIN wp_users AS u2 ON comments.edit_user = u2.ID';
 
     if($params) {
         // Build the WHERE clause
         if(isset($params['gift_id'])) {
-            $filters[] = 'gift_id = ' . $params['gift_id'];
+            $filters[] = 'parent_id = ' . $params['gift_id'];
+            $filters[] = 'comment_type = "gift"';
         }
 
         if(isset($params['reply_id'])) {
-            $filters[] = 'reply_id = ' . $params['reply_id'];
+            $filters[] = 'parent_id = ' . $params['reply_id'];
+            $filters[] = 'comment_type = "reply"';
         }
     }
 
@@ -136,7 +138,7 @@ function getGiftComments($params) {
             }
 
             echo("</div><br />");
-            echo("<span class='comment_text'>" . escapeHtml($comment->comment_text) . "</span><br />");
+            echo("<span class='comment_text'>" . stripslashes(strip_tags($comment->comment_text) . "</span><br />"));
 
 
             if ($comment->edit_date && $comment->edit_date != $comment->create_date) {
@@ -159,8 +161,8 @@ function getGiftComments($params) {
             // Close comment div
             echo("</div>");
         }
-    } else {
-        // no comments
+    } else if (isset($params['gift_id'])) {
+        // no comments - only print this if we're on the top level
         echo ("<h4>Be the first to leave a comment on this gift!</h4>");
     }
 }

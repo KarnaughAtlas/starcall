@@ -150,3 +150,72 @@ function deleteCommentAjax(comment,callback) {
       dataType: 'json'
     } );
 }
+
+jQuery('.comment_edit').click(function(e) {
+    // Pass the parent (the entire comment div)
+
+    if(!editing){
+
+        var commentDiv = e.target.parentElement.parentElement;
+        thisCommentID = commentDiv.id.replace( /^\D+/g, '');
+        editComment(commentDiv,thisCommentID);
+
+    } else {
+        alert("You are already editing a comment!")
+    }
+});
+
+jQuery('.comment_delete').click(function(e) {
+    // Permanently delete comment after confirm
+
+    var commentDiv = e.target.parentElement.parentElement;
+    thisCommentID = commentDiv.id.replace( /^\D+/g, '');
+
+    if (confirm("Really delete? This can not be undone.")) {
+        getCommentById(thisCommentID,function(comment){
+            var editCommentObj = comment;
+            // This doesn't actually delete them; it sets the comment_status column in the DB
+            editCommentObj[0].comment_status = 'deleted';
+            // Send the first element only (even though there's only one) otherwise the server thinks it's an array and barfs
+            postCommentAjax(editCommentObj[0] , function(e){
+                loadComments();
+            });
+        });
+
+        alert("Comment deleted.");
+    }
+});
+
+jQuery('.comment_reply').click(function(e) {
+
+    if (!replying) {
+        replying = true;
+        // Create reply area
+        var commentDiv = e.target.parentElement.parentElement;
+        var origHTML = jQuery(commentDiv).html();
+        markup = '<div class="replyarea">' +
+                 '<strong>Reply</strong><br />' +
+                 '<textarea id="replyText"></textarea>' +
+                 '<button class="submit_reply">Submit</button>' +
+                 '<button class="cancel_reply">Cancel</button>';
+        jQuery(commentDiv).append(markup);
+
+        jQuery('.cancel_reply').click(function(){
+            if(confirm("Discard reply?")) {
+                jQuery('.replyarea').remove();
+                replying = false;
+            }
+
+        });
+
+        jQuery('.submit_reply').click(function(){
+            var commentDiv = e.target.parentElement.parentElement;
+            var text = jQuery('#replyText').val();
+            var id = commentDiv.getElementsByClassName('commentID')[0].innerHTML;
+            submitComment(text,id);
+            replying = false;
+        });
+    } else {
+        alert("You are already replying to a comment!");
+    }
+});
