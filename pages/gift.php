@@ -55,7 +55,8 @@ function giftCommentForm() {
 </form>
 
 </div>
-</div> <!-- Gift body >
+</div> <!-- Gift body -->
+    
 <?php
 
 echo("<br /><span class=submit_reply><strong>Submit a comment</strong></span>");
@@ -63,8 +64,6 @@ echo("<br /><textarea id='newcomment'></textarea>");
 echo("<br /><button id='submitcomment'>Submit comment</button>");
 
 }
-
-
 
 function getGiftComments($params) {
 

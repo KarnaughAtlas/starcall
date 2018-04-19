@@ -180,7 +180,7 @@ jQuery('.comment_delete').click(function(e) {
             editCommentObj[0].comment_status = 'deleted';
             // Send the first element only (even though there's only one) otherwise the server thinks it's an array and barfs
             postCommentAjax(editCommentObj[0] , function(e){
-                loadComments();
+                location.reload();
             });
         });
 
@@ -260,7 +260,7 @@ function editComment(commentDiv,commentID) {
     jQuery(".cancelEdit").click(function(e) {
         // Just reload the page
         if (confirm("Discard changes?")) {
-            loadComments();
+            location.reload();
         }
     });
 

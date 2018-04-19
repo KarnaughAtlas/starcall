@@ -388,6 +388,13 @@ function make_gift_array($params,$currentUser,$userIsAdmin) {
         }
 
         //Add the SQL order bys here
+
+        if (isset($params['sort'])) {
+            // Add the user sort to the request
+            // TODO: this :-)
+        }
+
+        // This is the default sort
         $sql .= " ORDER BY RAND()";
 
       $requests = $wpdb->get_results($sql);
@@ -1535,7 +1542,7 @@ function post_comment($commentToUpdate) {
                     $subject = $commentAuthor->user_login . " has commented on your " . $subjectType . ".";
                     $message = "Dear " . $notifyUser->user_login . ",\r\n\r\n";
                     $message .= $commentAuthor->user_login . " has commented on your " . $subjectType . ".";
-                    $message .= "\r\n\r\nYou can view the request here: " . $url;
+                    $message .= "\r\n\r\nYou can view it here: " . $url;
                 }
 
                 $email = $notifyUser->user_email;
